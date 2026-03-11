@@ -3,7 +3,7 @@
   import Renderer from '@/lib/Renderer.svelte'
 </script>
 
-<main>
+<main class="relative w-screen h-screen overflow-hidden">
   <Renderer />
   <Interface />
 </main>
