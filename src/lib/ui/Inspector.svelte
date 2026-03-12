@@ -68,10 +68,17 @@
               const obj = startObj
               if (!obj) return
               const before = posStart[axis]
-              if (before !== v) pushCommand({
-                undo: () => { obj.position[axis] = before; pos[axis] = round2(before) },
-                redo: () => { obj.position[axis] = v; pos[axis] = round2(v) },
-              })
+              if (before !== v)
+                pushCommand({
+                  undo: () => {
+                    obj.position[axis] = before
+                    pos[axis] = round2(before)
+                  },
+                  redo: () => {
+                    obj.position[axis] = v
+                    pos[axis] = round2(v)
+                  },
+                })
             }}
           />
         </div>
@@ -101,10 +108,17 @@
               if (!obj) return
               const before = rotStart[axis]
               const after = v * DEG2RAD
-              if (before !== after) pushCommand({
-                undo: () => { obj.rotation[axis] = before; rot[axis] = round2(before * RAD2DEG) },
-                redo: () => { obj.rotation[axis] = after; rot[axis] = round2(v) },
-              })
+              if (before !== after)
+                pushCommand({
+                  undo: () => {
+                    obj.rotation[axis] = before
+                    rot[axis] = round2(before * RAD2DEG)
+                  },
+                  redo: () => {
+                    obj.rotation[axis] = after
+                    rot[axis] = round2(v)
+                  },
+                })
             }}
           />
         </div>
@@ -133,10 +147,17 @@
               const obj = startObj
               if (!obj) return
               const before = scaleStart[axis]
-              if (before !== v) pushCommand({
-                undo: () => { obj.scale[axis] = before; scale[axis] = round2(before) },
-                redo: () => { obj.scale[axis] = v; scale[axis] = round2(v) },
-              })
+              if (before !== v)
+                pushCommand({
+                  undo: () => {
+                    obj.scale[axis] = before
+                    scale[axis] = round2(before)
+                  },
+                  redo: () => {
+                    obj.scale[axis] = v
+                    scale[axis] = round2(v)
+                  },
+                })
             }}
           />
         </div>

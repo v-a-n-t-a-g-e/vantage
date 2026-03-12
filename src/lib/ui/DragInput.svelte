@@ -97,7 +97,13 @@
       bind:this={inputEl}
       bind:value={editValue}
       type="number"
-      onfocus={() => { if (!editing) { editValue = value; editing = true; onstart?.() } }}
+      onfocus={() => {
+        if (!editing) {
+          editValue = value
+          editing = true
+          onstart?.()
+        }
+      }}
       onblur={commit}
       {onkeydown}
       oninput={() => {
