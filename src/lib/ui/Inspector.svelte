@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { sceneState } from '@/lib/sceneState.svelte.js'
+  import { pushCommand } from '@/lib/history.svelte.js'
   import DragInput from '@/lib/ui/DragInput.svelte'
 
   const RAD2DEG = 180 / Math.PI
@@ -10,6 +11,11 @@
   let pos = $state({ x: 0, y: 0, z: 0 })
   let rot = $state({ x: 0, y: 0, z: 0 })
   let scale = $state({ x: 1, y: 1, z: 1 })
+
+  let startObj = /** @type {any} */ (null)
+  let posStart = { x: 0, y: 0, z: 0 }
+  let rotStart = { x: 0, y: 0, z: 0 }
+  let scaleStart = { x: 1, y: 1, z: 1 }
 
   /** @param {number} v */
   const round2 = (v) => Math.round(v * 100) / 100
@@ -50,9 +56,22 @@
             label={axis}
             value={pos[axis]}
             step={0.1}
+            onstart={() => {
+              startObj = sceneState.selected?.object ?? null
+              if (startObj) posStart[axis] = startObj.position[axis]
+            }}
             onchange={(v) => {
               pos[axis] = v
               sceneState.selected.object.position[axis] = v
+            }}
+            onend={(v) => {
+              const obj = startObj
+              if (!obj) return
+              const before = posStart[axis]
+              if (before !== v) pushCommand({
+                undo: () => { obj.position[axis] = before },
+                redo: () => { obj.position[axis] = v },
+              })
             }}
           />
         </div>
@@ -69,9 +88,23 @@
             label={axis}
             value={rot[axis]}
             step={1}
+            onstart={() => {
+              startObj = sceneState.selected?.object ?? null
+              if (startObj) rotStart[axis] = startObj.rotation[axis]
+            }}
             onchange={(v) => {
               rot[axis] = v
               sceneState.selected.object.rotation[axis] = v * DEG2RAD
+            }}
+            onend={(v) => {
+              const obj = startObj
+              if (!obj) return
+              const before = rotStart[axis]
+              const after = v * DEG2RAD
+              if (before !== after) pushCommand({
+                undo: () => { obj.rotation[axis] = before },
+                redo: () => { obj.rotation[axis] = after },
+              })
             }}
           />
         </div>
@@ -88,9 +121,22 @@
             label={axis}
             value={scale[axis]}
             step={0.1}
+            onstart={() => {
+              startObj = sceneState.selected?.object ?? null
+              if (startObj) scaleStart[axis] = startObj.scale[axis]
+            }}
             onchange={(v) => {
               scale[axis] = v
               sceneState.selected.object.scale[axis] = v
+            }}
+            onend={(v) => {
+              const obj = startObj
+              if (!obj) return
+              const before = scaleStart[axis]
+              if (before !== v) pushCommand({
+                undo: () => { obj.scale[axis] = before },
+                redo: () => { obj.scale[axis] = v },
+              })
             }}
           />
         </div>

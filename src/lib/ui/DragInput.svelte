@@ -1,8 +1,8 @@
 <script>
   import { tick } from 'svelte'
 
-  /** @type {{ value: number, step?: number, label?: string, onchange: (v: number) => void }} */
-  let { value, step = 1, label = '', onchange } = $props()
+  /** @type {{ value: number, step?: number, label?: string, onchange: (v: number) => void, onstart?: () => void, onend?: (v: number) => void }} */
+  let { value, step = 1, label = '', onchange, onstart, onend } = $props()
 
   let editing = $state(false)
   let editValue = $state(0)
@@ -22,6 +22,7 @@
     accumulated = 0
     dragging = true
     document.body.style.cursor = 'ew-resize'
+    onstart?.()
   }
 
   /** @param {PointerEvent} e */
@@ -40,14 +41,17 @@
     if (accumulated < 3) {
       editValue = value
       editing = true
+      onstart?.()
       await tick()
       inputEl?.select()
+    } else {
+      onend?.(value)
     }
   }
 
   function commit() {
     const n = parseFloat(String(editValue))
-    if (!isNaN(n)) onchange(n)
+    if (!isNaN(n)) { onchange(n); onend?.(n) }
     editing = false
   }
 
@@ -70,6 +74,7 @@
       if (e.key === 'Enter' || e.key === ' ') {
         editValue = value
         editing = true
+        onstart?.()
       }
     }}
     style:visibility={editing ? 'hidden' : 'visible'}
