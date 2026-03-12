@@ -64,7 +64,7 @@
     bind:value={editValue}
     type="number"
     onblur={commit}
-    onkeydown={onkeydown}
+    {onkeydown}
     class="w-full bg-transparent border-b border-black text-right outline-none py-0.5 tnum"
   />
 {:else}
@@ -72,10 +72,27 @@
     role="spinbutton"
     aria-valuenow={value}
     tabindex="0"
-    onpointerdown={onpointerdown}
-    onpointermove={onpointermove}
-    onpointerup={onpointerup}
-    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { editValue = value; editing = true } }}
+    {onpointerdown}
+    {onpointermove}
+    {onpointerup}
+    onkeydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        editValue = value
+        editing = true
+      }
+    }}
     class="block w-full text-right py-0.5 border-b border-black cursor-ew-resize select-none tnum"
-  >{fmt(value)}</span>
+    >{fmt(value)}</span
+  >
 {/if}
+
+<style>
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+</style>
