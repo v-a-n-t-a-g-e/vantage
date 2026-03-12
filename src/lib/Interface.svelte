@@ -11,8 +11,9 @@
 >
   <NodeList />
   <MenuBar />
-  <Toolbar />
+
   {#if sceneState.selected}
+    <Toolbar />
     <Inspector />
   {/if}
 </div>
