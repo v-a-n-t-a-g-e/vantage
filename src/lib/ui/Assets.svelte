@@ -3,8 +3,8 @@
   import { sceneState } from '@/lib/sceneState.svelte.js'
 </script>
 
-<aside class="col-start-3 row-start-1 pointer-events-auto min-w-40">
-  <div class="px-2 py-1 text-xs font-bold uppercase tracking-wider opacity-60">Scene</div>
+<aside class="ui-container col-start-1 row-span-2 flex-1 min-h-0 overflow-auto pointer-events-auto">
+  <div class="px-3 flex items-center tracking-wider h-10 border-b">Assets</div>
   {#each sceneState.objects as item (item.name)}
     <InspectorItem
       {item}

@@ -1,10 +1,13 @@
 <script>
+  import Logo from '@/lib/Logo.svg'
+
   let fileOpen = $state(false)
 </script>
 
-<nav class="flex pointer-events-auto col-start-1 row-start-1">
+<nav class="ui-container flex justify-self-start items-center">
+  <div class="ui-button text-brand hover:text-white"><Logo /></div>
   <div
-    class="relative px-2.5 py-1 cursor-pointer select-none"
+    class="relative cursor-pointer select-none ui-button"
     role="button"
     tabindex="0"
     onclick={() => (fileOpen = !fileOpen)}
@@ -19,5 +22,5 @@
       </ul>
     {/if}
   </div>
-  <div class="px-2.5 py-1 cursor-pointer select-none">View</div>
+  <div class="cursor-pointer select-none ui-button">View</div>
 </nav>

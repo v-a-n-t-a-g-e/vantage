@@ -1,16 +1,30 @@
 <script>
+  import { onMount } from 'svelte'
   import { sceneState } from '@/lib/sceneState.svelte.js'
 
+  let panel
   let pos = $state({ x: 0, y: 0, z: 0 })
   let rot = $state({ x: 0, y: 0, z: 0 })
   let scale = $state({ x: 1, y: 1, z: 1 })
 
-  $effect(() => {
-    const obj = sceneState.selected?.object
-    if (!obj) return
-    pos = { x: obj.position.x, y: obj.position.y, z: obj.position.z }
-    rot = { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z }
-    scale = { x: obj.scale.x, y: obj.scale.y, z: obj.scale.z }
+  onMount(() => {
+    let animId
+    const sync = () => {
+      animId = requestAnimationFrame(sync)
+      const obj = sceneState.selected?.object
+      if (!obj || panel?.contains(document.activeElement)) return
+      pos.x = obj.position.x
+      pos.y = obj.position.y
+      pos.z = obj.position.z
+      rot.x = obj.rotation.x
+      rot.y = obj.rotation.y
+      rot.z = obj.rotation.z
+      scale.x = obj.scale.x
+      scale.y = obj.scale.y
+      scale.z = obj.scale.z
+    }
+    sync()
+    return () => cancelAnimationFrame(animId)
   })
 
   function setPos(axis) {
@@ -26,7 +40,10 @@
   }
 </script>
 
-<aside class="col-start-3 row-start-2 pointer-events-auto min-w-40">
+<aside
+  bind:this={panel}
+  class="ui-container row-span-2 flex-1 min-h-0 overflow-auto pointer-events-auto"
+>
   <div class="px-2 py-1 text-xs font-bold uppercase tracking-wider opacity-60">Transform</div>
 
   <div class="px-2 pb-1">

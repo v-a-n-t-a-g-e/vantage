@@ -2,17 +2,20 @@
   import { onMount } from 'svelte'
   import * as THREE from 'three'
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+  import { TransformControls } from 'three/addons/controls/TransformControls.js'
   import { sceneState } from '@/lib/sceneState.svelte.js'
 
   let canvas
 
   onMount(() => {
+    // Renderer
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
+    renderer.setClearColor(0xf6e8f9)
 
+    // Scene & camera
     const scene = new THREE.Scene()
-
     const camera = new THREE.PerspectiveCamera(
       60,
       canvas.clientWidth / canvas.clientHeight,
@@ -22,10 +25,17 @@
     camera.position.set(18, 14, 18)
     camera.lookAt(0, 0, 0)
 
-    const controls = new OrbitControls(camera, canvas)
-    controls.enableDamping = true
-    controls.dampingFactor = 0.05
+    // Controls
+    const orbit = new OrbitControls(camera, canvas)
+    orbit.enableDamping = true
 
+    // TransformControls — r168+: add getHelper() to scene, not the control itself
+    const transform = new TransformControls(camera, canvas)
+    transform.addEventListener('dragging-changed', (e) => (orbit.enabled = !e.value))
+    const tcHelper = transform.getHelper()
+    scene.add(tcHelper)
+
+    // Objects
     const box = new THREE.Mesh(
       new THREE.BoxGeometry(10, 10, 10),
       new THREE.MeshStandardMaterial({ color: 0x888888 })
@@ -46,32 +56,62 @@
     dirLight.position.set(10, 20, 10)
     scene.add(dirLight)
 
-    sceneState.objects = scene.children.map((obj) => ({
-      name: obj.name,
-      object: obj,
-      visible: obj.visible,
-    }))
+    const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 2)
+    scene.add(dirLightHelper)
 
-    const resizeObserver = new ResizeObserver(() => {
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
-      renderer.setSize(w, h, false)
-      camera.aspect = w / h
+    // Expose named objects (skip internal helpers)
+    sceneState.objects = scene.children
+      .filter((o) => o !== tcHelper && o !== dirLightHelper)
+      .map((o) => ({ name: o.name, object: o, visible: o.visible }))
+
+    // Resize
+    const ro = new ResizeObserver(() => {
+      renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
+      camera.aspect = canvas.clientWidth / canvas.clientHeight
       camera.updateProjectionMatrix()
     })
-    resizeObserver.observe(canvas)
+    ro.observe(canvas)
+
+    // Animate — poll sceneState for selection/mode changes
+    let boxHelper = null
+    let lastSelected = null
+    let lastMode = sceneState.transformMode
 
     let animId
     const animate = () => {
       animId = requestAnimationFrame(animate)
-      controls.update()
+      orbit.update()
+
+      if (sceneState.selected !== lastSelected) {
+        lastSelected = sceneState.selected
+        if (boxHelper) {
+          scene.remove(boxHelper)
+          boxHelper = null
+        }
+        if (lastSelected) {
+          transform.attach(lastSelected.object)
+          boxHelper = new THREE.BoxHelper(lastSelected.object, 0x01ff00)
+          scene.add(boxHelper)
+        } else {
+          transform.detach()
+        }
+      }
+
+      if (sceneState.transformMode !== lastMode) {
+        lastMode = sceneState.transformMode
+        transform.setMode(lastMode)
+      }
+
+      if (boxHelper) boxHelper.update()
+      dirLightHelper.update()
       renderer.render(scene, camera)
     }
     animate()
 
     return () => {
       cancelAnimationFrame(animId)
-      resizeObserver.disconnect()
+      ro.disconnect()
+      transform.dispose()
       renderer.dispose()
     }
   })
