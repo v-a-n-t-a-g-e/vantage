@@ -43,6 +43,7 @@
       editing = true
       onstart?.()
       await tick()
+      inputEl?.focus()
       inputEl?.select()
     } else {
       onend?.(value)
@@ -51,7 +52,10 @@
 
   function commit() {
     const n = parseFloat(String(editValue))
-    if (!isNaN(n)) { onchange(n); onend?.(n) }
+    if (!isNaN(n)) {
+      onchange(n)
+      onend?.(n)
+    }
     editing = false
   }
 
@@ -66,7 +70,7 @@
   <span
     role="spinbutton"
     aria-valuenow={value}
-    tabindex="0"
+    tabindex="-1"
     {onpointerdown}
     {onpointermove}
     {onpointerup}
@@ -84,20 +88,23 @@
     <span class="flex-1 text-right">{fmt(value)}</span>
   </span>
 
-  {#if editing}
-    <div class="absolute inset-0 flex items-center gap-1.5 tnum">
-      {#if label}<span class="uppercase opacity-50">{label}</span>{/if}
-      <input
-        bind:this={inputEl}
-        bind:value={editValue}
-        type="number"
-        onblur={commit}
-        {onkeydown}
-        oninput={() => { const n = parseFloat(String(editValue)); if (!isNaN(n)) onchange(n) }}
-        class="flex-1 min-w-0 bg-transparent text-right outline-none"
-      />
-    </div>
-  {/if}
+  <div class="absolute inset-0 flex items-center gap-1.5 tnum" class:pointer-events-none={!editing}>
+    {#if editing}<span class="uppercase opacity-50">{label}</span>{/if}
+    <input
+      bind:this={inputEl}
+      bind:value={editValue}
+      type="number"
+      onfocus={() => { if (!editing) { editValue = value; editing = true; onstart?.() } }}
+      onblur={commit}
+      {onkeydown}
+      oninput={() => {
+        const n = parseFloat(String(editValue))
+        if (!isNaN(n)) onchange(n)
+      }}
+      class="flex-1 min-w-0 bg-transparent text-right outline-none"
+      class:opacity-0={!editing}
+    />
+  </div>
 </div>
 
 <style>
