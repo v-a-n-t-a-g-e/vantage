@@ -41,13 +41,13 @@
 >
   <div class="px-3 flex items-center tracking-wider h-10 border-b">Transform</div>
 
-  <div class="px-3 py-2">
-    <div class="opacity-60 mb-1.5">Position</div>
-    <div class="flex gap-2">
+  <div class="border-b border-black text-xs">
+    <div class="px-3 py-1.5">Position</div>
+    <div class="flex divide-x divide-black">
       {#each ['x', 'y', 'z'] as axis (axis)}
-        <div class="flex-1 flex flex-col gap-0.5 text-xs">
-          <span class="uppercase opacity-60">{axis}</span>
+        <div class="flex-1 px-3 py-1.5">
           <DragInput
+            label={axis}
             value={pos[axis]}
             step={0.1}
             onchange={(v) => {
@@ -60,13 +60,13 @@
     </div>
   </div>
 
-  <div class="px-3 py-2">
-    <div class="opacity-60 mb-1.5">Rotation</div>
-    <div class="flex gap-2">
+  <div class="border-b border-black text-xs">
+    <div class="px-3 py-1.5">Rotation</div>
+    <div class="flex divide-x divide-black">
       {#each ['x', 'y', 'z'] as axis (axis)}
-        <div class="flex-1 flex flex-col gap-0.5 text-xs">
-          <span class="uppercase opacity-60">{axis}</span>
+        <div class="flex-1 px-3 py-1.5">
           <DragInput
+            label={axis}
             value={rot[axis]}
             step={1}
             onchange={(v) => {
@@ -79,13 +79,13 @@
     </div>
   </div>
 
-  <div class="px-3 py-2">
-    <div class="opacity-60 mb-1.5">Scale</div>
-    <div class="flex gap-2">
+  <div class="border-b border-black text-xs">
+    <div class="px-3 py-1.5">Scale</div>
+    <div class="flex divide-x divide-black">
       {#each ['x', 'y', 'z'] as axis (axis)}
-        <div class="flex-1 flex flex-col gap-0.5 text-xs">
-          <span class="uppercase opacity-60">{axis}</span>
+        <div class="flex-1 px-3 py-1.5">
           <DragInput
+            label={axis}
             value={scale[axis]}
             step={0.1}
             onchange={(v) => {

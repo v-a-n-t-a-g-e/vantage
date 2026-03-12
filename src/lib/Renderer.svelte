@@ -12,7 +12,7 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
-    renderer.setClearColor(0xf6e8f9)
+    renderer.setClearColor(0xf3e7fd)
 
     // Scene & camera
     const scene = new THREE.Scene()

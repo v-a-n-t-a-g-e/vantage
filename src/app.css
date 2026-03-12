@@ -7,9 +7,9 @@
 
   --color-brand: var(--color-green);
 
-  --color-x: var(--color-red);
-  --color-y: var(--color-green);
-  --color-z: var(--color-blue);
+  --color-axis-x: var(--color-red);
+  --color-axis-y: var(--color-green);
+  --color-axis-z: var(--color-blue);
 }
 
 @utility ui-container {

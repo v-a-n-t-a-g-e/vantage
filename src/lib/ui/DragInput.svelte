@@ -1,8 +1,8 @@
 <script>
   import { tick } from 'svelte'
 
-  /** @type {{ value: number, step?: number, onchange: (v: number) => void }} */
-  let { value, step = 1, onchange } = $props()
+  /** @type {{ value: number, step?: number, label?: string, onchange: (v: number) => void }} */
+  let { value, step = 1, label = '', onchange } = $props()
 
   let editing = $state(false)
   let editValue = $state(0)
@@ -58,16 +58,7 @@
   }
 </script>
 
-{#if editing}
-  <input
-    bind:this={inputEl}
-    bind:value={editValue}
-    type="number"
-    onblur={commit}
-    {onkeydown}
-    class="w-full bg-transparent border-b border-black text-right outline-none py-0.5 tnum"
-  />
-{:else}
+<div class="relative">
   <span
     role="spinbutton"
     aria-valuenow={value}
@@ -81,10 +72,28 @@
         editing = true
       }
     }}
-    class="block w-full text-right py-0.5 border-b border-black cursor-ew-resize select-none tnum"
-    >{fmt(value)}</span
+    style:visibility={editing ? 'hidden' : 'visible'}
+    class="flex items-center gap-1.5 w-full cursor-ew-resize select-none tnum"
   >
-{/if}
+    {#if label}<span class="uppercase opacity-50">{label}</span>{/if}
+    <span class="flex-1 text-right">{fmt(value)}</span>
+  </span>
+
+  {#if editing}
+    <div class="absolute inset-0 flex items-center gap-1.5 tnum">
+      {#if label}<span class="uppercase opacity-50">{label}</span>{/if}
+      <input
+        bind:this={inputEl}
+        bind:value={editValue}
+        type="number"
+        onblur={commit}
+        {onkeydown}
+        oninput={() => { const n = parseFloat(String(editValue)); if (!isNaN(n)) onchange(n) }}
+        class="flex-1 min-w-0 bg-transparent text-right outline-none"
+      />
+    </div>
+  {/if}
+</div>
 
 <style>
   input[type='number']::-webkit-inner-spin-button,
