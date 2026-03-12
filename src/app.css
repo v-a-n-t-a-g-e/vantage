@@ -20,6 +20,10 @@
   @apply flex items-center h-10 px-3 hover:bg-gray-200;
 }
 
+@utility tnum {
+  font-feature-settings: 'liga', 'ss03', 'ss02', 'tnum';
+}
+
 @font-face {
   font-family: space;
   src: url('@/assets/SpaceGrotesk-Regular.woff2');
