@@ -69,8 +69,8 @@
               if (!obj) return
               const before = posStart[axis]
               if (before !== v) pushCommand({
-                undo: () => { obj.position[axis] = before },
-                redo: () => { obj.position[axis] = v },
+                undo: () => { obj.position[axis] = before; pos[axis] = round2(before) },
+                redo: () => { obj.position[axis] = v; pos[axis] = round2(v) },
               })
             }}
           />
@@ -102,8 +102,8 @@
               const before = rotStart[axis]
               const after = v * DEG2RAD
               if (before !== after) pushCommand({
-                undo: () => { obj.rotation[axis] = before },
-                redo: () => { obj.rotation[axis] = after },
+                undo: () => { obj.rotation[axis] = before; rot[axis] = round2(before * RAD2DEG) },
+                redo: () => { obj.rotation[axis] = after; rot[axis] = round2(v) },
               })
             }}
           />
@@ -134,8 +134,8 @@
               if (!obj) return
               const before = scaleStart[axis]
               if (before !== v) pushCommand({
-                undo: () => { obj.scale[axis] = before },
-                redo: () => { obj.scale[axis] = v },
+                undo: () => { obj.scale[axis] = before; scale[axis] = round2(before) },
+                redo: () => { obj.scale[axis] = v; scale[axis] = round2(v) },
               })
             }}
           />

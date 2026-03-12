@@ -51,6 +51,7 @@
   }
 
   function commit() {
+    if (!editing) return
     const n = parseFloat(String(editValue))
     if (!isNaN(n)) {
       onchange(n)
@@ -63,6 +64,8 @@
   function onkeydown(e) {
     if (e.key === 'Enter') e.currentTarget.blur()
     if (e.key === 'Escape') editing = false
+    // Commit before undo/redo so the typed value is in history first
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'y')) commit()
   }
 </script>
 
