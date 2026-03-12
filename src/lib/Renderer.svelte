@@ -31,6 +31,32 @@
 
     // TransformControls — r168+: add getHelper() to scene, not the control itself
     const transform = new TransformControls(camera, canvas)
+    const _cs = getComputedStyle(document.documentElement)
+    const _cc = (v) => new THREE.Color(_cs.getPropertyValue(v).trim())
+    transform.setColors(
+      _cc('--color-axis-x'),
+      _cc('--color-axis-y'),
+      _cc('--color-axis-z'),
+      _cc('--color-axis-x')
+    )
+    const _gizmo = /** @type {any} */ (transform)._gizmo
+    const _origGizmoUpdate = _gizmo.updateMatrixWorld.bind(_gizmo)
+    _gizmo.updateMatrixWorld = function (force) {
+      _origGizmoUpdate(force)
+      if (this.axis) {
+        const handles = [...this.gizmo[this.mode].children, ...this.helper[this.mode].children]
+        for (const handle of handles) {
+          if (!handle.material?._color) continue
+          const isActive =
+            handle.name === this.axis || this.axis.split('').some((a) => handle.name === a)
+          if (isActive) {
+            handle.material.color.copy(handle.material._color)
+          } else {
+            handle.material.opacity = handle.material._opacity * 0.15
+          }
+        }
+      }
+    }
     transform.addEventListener('dragging-changed', (e) => (orbit.enabled = !e.value))
     const tcHelper = transform.getHelper()
     scene.add(tcHelper)
