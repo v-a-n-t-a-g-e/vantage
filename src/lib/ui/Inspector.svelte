@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { sceneState } from '@/lib/sceneState.svelte.js'
+  import DragInput from '@/lib/ui/DragInput.svelte'
 
   const RAD2DEG = 180 / Math.PI
   const DEG2RAD = Math.PI / 180
@@ -32,18 +33,6 @@
     sync()
     return () => cancelAnimationFrame(animId)
   })
-
-  function setPos(axis) {
-    sceneState.selected.object.position[axis] = pos[axis]
-  }
-
-  function setRot(axis) {
-    sceneState.selected.object.rotation[axis] = rot[axis] * DEG2RAD
-  }
-
-  function setScale(axis) {
-    sceneState.selected.object.scale[axis] = scale[axis]
-  }
 </script>
 
 <aside
@@ -56,16 +45,17 @@
     <div class="opacity-60 mb-1.5">Position</div>
     <div class="flex gap-2">
       {#each ['x', 'y', 'z'] as axis (axis)}
-        <label class="flex-1 flex flex-col gap-0.5 text-xs">
+        <div class="flex-1 flex flex-col gap-0.5 text-xs">
           <span class="uppercase opacity-60">{axis}</span>
-          <input
-            type="number"
-            step="0.1"
-            bind:value={pos[axis]}
-            oninput={() => setPos(axis)}
-            class="w-full bg-transparent border-b border-black text-right outline-none py-0.5 tnum"
+          <DragInput
+            value={pos[axis]}
+            step={0.1}
+            onchange={(v) => {
+              pos[axis] = v
+              sceneState.selected.object.position[axis] = v
+            }}
           />
-        </label>
+        </div>
       {/each}
     </div>
   </div>
@@ -74,16 +64,17 @@
     <div class="opacity-60 mb-1.5">Rotation</div>
     <div class="flex gap-2">
       {#each ['x', 'y', 'z'] as axis (axis)}
-        <label class="flex-1 flex flex-col gap-0.5 text-xs">
+        <div class="flex-1 flex flex-col gap-0.5 text-xs">
           <span class="uppercase opacity-60">{axis}</span>
-          <input
-            type="number"
-            step="1"
-            bind:value={rot[axis]}
-            oninput={() => setRot(axis)}
-            class="w-full bg-transparent border-b border-black text-right outline-none py-0.5 tnum"
+          <DragInput
+            value={rot[axis]}
+            step={1}
+            onchange={(v) => {
+              rot[axis] = v
+              sceneState.selected.object.rotation[axis] = v * DEG2RAD
+            }}
           />
-        </label>
+        </div>
       {/each}
     </div>
   </div>
@@ -92,16 +83,17 @@
     <div class="opacity-60 mb-1.5">Scale</div>
     <div class="flex gap-2">
       {#each ['x', 'y', 'z'] as axis (axis)}
-        <label class="flex-1 flex flex-col gap-0.5 text-xs">
+        <div class="flex-1 flex flex-col gap-0.5 text-xs">
           <span class="uppercase opacity-60">{axis}</span>
-          <input
-            type="number"
-            step="0.1"
-            bind:value={scale[axis]}
-            oninput={() => setScale(axis)}
-            class="w-full bg-transparent border-b border-black text-right outline-none py-0.5 tnum"
+          <DragInput
+            value={scale[axis]}
+            step={0.1}
+            onchange={(v) => {
+              scale[axis] = v
+              sceneState.selected.object.scale[axis] = v
+            }}
           />
-        </label>
+        </div>
       {/each}
     </div>
   </div>
