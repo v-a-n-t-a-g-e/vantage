@@ -1,7 +1,23 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-brand: #01ff00;
+  --color-green: #01ff00;
+  --color-blue: #0084ff;
+  --color-red: #ff3000;
+
+  --color-brand: var(--color-green);
+
+  --color-x: var(--color-red);
+  --color-y: var(--color-green);
+  --color-z: var(--color-blue);
+}
+
+@utility ui-container {
+  @apply bg-white border border-black pointer-events-auto;
+}
+
+@utility ui-button {
+  @apply flex items-center h-10 px-3 hover:bg-gray-200;
 }
 
 @font-face {
