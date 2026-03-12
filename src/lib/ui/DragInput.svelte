@@ -7,38 +7,41 @@
   let editing = $state(false)
   let editValue = $state(0)
   let inputEl = $state(null)
-  let spanEl = $state(null)
 
+  let dragging = false
   let currentValue = 0
   let accumulated = 0
 
   const fmt = (v) => String(parseFloat(v.toFixed(2)))
 
+  /** @param {PointerEvent & { currentTarget: HTMLElement }} e */
   function onpointerdown(e) {
     if (e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
     currentValue = value
     accumulated = 0
-    spanEl.requestPointerLock()
-    document.addEventListener('mousemove', onDocMouseMove)
-    document.addEventListener('mouseup', onDocMouseUp)
+    dragging = true
+    document.body.style.cursor = 'ew-resize'
   }
 
-  /** @param {MouseEvent} e */
-  function onDocMouseMove(e) {
+  /** @param {PointerEvent} e */
+  function onpointermove(e) {
+    if (!dragging) return
     accumulated += Math.abs(e.movementX)
     const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1
     currentValue += e.movementX * step * multiplier
     onchange(parseFloat(currentValue.toFixed(10)))
   }
 
-  function onDocMouseUp() {
-    document.removeEventListener('mousemove', onDocMouseMove)
-    document.removeEventListener('mouseup', onDocMouseUp)
-    document.exitPointerLock()
+  async function onpointerup() {
+    if (!dragging) return
+    dragging = false
+    document.body.style.cursor = ''
     if (accumulated < 3) {
       editValue = value
       editing = true
-      tick().then(() => inputEl?.select())
+      await tick()
+      inputEl?.select()
     }
   }
 
@@ -48,6 +51,7 @@
     editing = false
   }
 
+  /** @param {KeyboardEvent & { currentTarget: HTMLElement }} e */
   function onkeydown(e) {
     if (e.key === 'Enter') e.currentTarget.blur()
     if (e.key === 'Escape') editing = false
@@ -65,11 +69,12 @@
   />
 {:else}
   <span
-    bind:this={spanEl}
     role="spinbutton"
     aria-valuenow={value}
     tabindex="0"
     onpointerdown={onpointerdown}
+    onpointermove={onpointermove}
+    onpointerup={onpointerup}
     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { editValue = value; editing = true } }}
     class="block w-full text-right py-0.5 border-b border-black cursor-ew-resize select-none tnum"
   >{fmt(value)}</span>
