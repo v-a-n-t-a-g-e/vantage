@@ -1,5 +1,6 @@
 <script>
   import { pushCommand } from '@/lib/history.svelte.js'
+  import { sceneState } from '@/lib/sceneState.svelte.js'
   import DragInput from '@/lib/ui/DragInput.svelte'
 
   /** @type {{ title: string, object: any, prop: string, labels?: [string,string,string], step?: number, toDisplay?: (v: number) => number, fromDisplay?: (v: number) => number }} */
@@ -18,6 +19,7 @@
   let startSnapshot = { x: 0, y: 0, z: 0 }
 
   $effect(() => {
+    sceneState.transformRevision // subscribe to external transform changes
     if (!object) return
     values.x = toDisplay(object[prop].x)
     values.y = toDisplay(object[prop].y)

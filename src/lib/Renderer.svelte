@@ -59,6 +59,9 @@
       }
     }
     let dragSnapshot = /** @type {{ position: any, rotation: any, scale: any } | null} */ (null)
+    transform.addEventListener('change', () => {
+      sceneState.transformRevision++
+    })
     transform.addEventListener('dragging-changed', (e) => {
       orbit.enabled = !e.value
       const obj = sceneState.selected?.object
@@ -82,11 +85,13 @@
             obj.position.copy(before.position)
             obj.rotation.copy(before.rotation)
             obj.scale.copy(before.scale)
+            sceneState.transformRevision++
           },
           redo: () => {
             obj.position.copy(after.position)
             obj.rotation.copy(after.rotation)
             obj.scale.copy(after.scale)
+            sceneState.transformRevision++
           },
         })
       }
