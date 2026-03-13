@@ -63,18 +63,31 @@
       orbit.enabled = !e.value
       const obj = sceneState.selected?.object
       if (e.value) {
-        if (obj) dragSnapshot = {
+        if (obj)
+          dragSnapshot = {
+            position: obj.position.clone(),
+            rotation: obj.rotation.clone(),
+            scale: obj.scale.clone(),
+          }
+      } else if (obj && dragSnapshot) {
+        const before = dragSnapshot
+        const after = {
           position: obj.position.clone(),
           rotation: obj.rotation.clone(),
           scale: obj.scale.clone(),
         }
-      } else if (obj && dragSnapshot) {
-        const before = dragSnapshot
-        const after = { position: obj.position.clone(), rotation: obj.rotation.clone(), scale: obj.scale.clone() }
         dragSnapshot = null
         pushCommand({
-          undo: () => { obj.position.copy(before.position); obj.rotation.copy(before.rotation); obj.scale.copy(before.scale) },
-          redo: () => { obj.position.copy(after.position); obj.rotation.copy(after.rotation); obj.scale.copy(after.scale) },
+          undo: () => {
+            obj.position.copy(before.position)
+            obj.rotation.copy(before.rotation)
+            obj.scale.copy(before.scale)
+          },
+          redo: () => {
+            obj.position.copy(after.position)
+            obj.rotation.copy(after.rotation)
+            obj.scale.copy(after.scale)
+          },
         })
       }
     })
