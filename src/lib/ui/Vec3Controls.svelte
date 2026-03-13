@@ -64,13 +64,14 @@
 
 <div class="border-b border-black text-xs">
   <div class="px-3 py-1.5">{title}</div>
-  <div class="flex divide-x divide-black">
-    {#each ['x', 'y', 'z'] as axis, i (axis)}
+  <div class="flex divide-x">
+    {#each ['x', 'z', 'y'] as axis, i (axis)}
       <div class="flex-1 px-3 py-1.5">
         <DragInput
           label={labels[i]}
           value={values[axis]}
           {step}
+          {axis}
           onstart={() => onstart(axis)}
           onchange={(v) => onchange(axis, v)}
           onend={(v) => onend(axis, v)}

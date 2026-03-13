@@ -2,7 +2,7 @@
   import { tick } from 'svelte'
 
   /** @type {{ value: number, step?: number, precision?: number, label?: string, onchange: (v: number) => void, onstart?: () => void, onend?: (v: number) => void }} */
-  let { value, step = 1, precision = 2, label = '', onchange, onstart, onend } = $props()
+  let { value, step = 1, precision = 2, label = '', onchange, onstart, onend, axis } = $props()
 
   let inputEl = $state(null)
   let editing = $state(false)
@@ -71,7 +71,12 @@
   }
 </script>
 
-<div class="relative">
+<div class="relative flex flex-col">
+  <div class="flex justify-between items-center flex-row gap-2">
+    <span class="capitalize opacity-50">{label}</span>
+    <div class="bg-current text-axis-{axis} w-full h-px"></div>
+  </div>
+
   <span
     tabindex="-1"
     role="spinbutton"
@@ -91,12 +96,10 @@
     class="flex items-center gap-1.5 w-full cursor-ew-resize select-none tnum"
     class:invisible={editing}
   >
-    {#if label}<span class="uppercase opacity-50">{label}</span>{/if}
     <span class="flex-1 text-right">{fmt(value)}</span>
   </span>
 
   <div class="absolute inset-0 flex items-center gap-1.5 tnum" class:pointer-events-none={!editing}>
-    {#if editing && label}<span class="uppercase opacity-50">{label}</span>{/if}
     <input
       bind:this={inputEl}
       bind:value={editValue}

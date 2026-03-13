@@ -8,8 +8,8 @@
   --color-brand: var(--color-green);
 
   --color-axis-x: var(--color-red);
-  --color-axis-y: var(--color-green);
-  --color-axis-z: var(--color-blue);
+  --color-axis-y: var(--color-blue);
+  --color-axis-z: var(--color-green);
 }
 
 @utility ui-container {
