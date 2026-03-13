@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { SceneObject } from '@/lib/sceneState.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
 
@@ -16,7 +16,7 @@
   }
 
   function select() {
-    sceneState.selected = sceneState.selected === item ? null : item
+    sceneState.selected = item
   }
 </script>
 
@@ -26,7 +26,10 @@
   role="button"
   tabindex="0"
   onclick={select}
+  ondblclick={() => { sceneState.selected = item; sceneActions.value?.focusObject(item) }}
   onkeydown={(e) => e.key === 'Enter' && select()}
+  onmouseenter={() => { sceneState.hovered = item }}
+  onmouseleave={() => { sceneState.hovered = null }}
 >
   <span class:opacity-40={!item.visible}>{item.name}</span>
 

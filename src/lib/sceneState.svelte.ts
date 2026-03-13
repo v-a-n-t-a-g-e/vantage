@@ -9,13 +9,15 @@ export type SceneObject = {
 }
 
 export type SceneActions = {
-  addObject: (name: string, obj: Object3D) => void
-  removeObject: (item: SceneObject) => void
+  addObject: (_name: string, _obj: Object3D) => void
+  removeObject: (_item: SceneObject) => void
+  focusObject: (_item: SceneObject) => void
 }
 
 type SceneState = {
   objects: SceneObject[]
   selected: SceneObject | null
+  hovered: SceneObject | null
   transformMode: TransformMode
   transformRevision: number
 }
@@ -23,6 +25,7 @@ type SceneState = {
 export const sceneState: SceneState = $state({
   objects: [],
   selected: null,
+  hovered: null,
   transformMode: 'translate',
   transformRevision: 0,
 })

@@ -16,7 +16,10 @@
   }
 </script>
 
-<aside class="ui-container col-start-1 row-span-2 flex-1 min-h-0 overflow-auto pointer-events-auto">
+<aside
+  class="ui-container col-start-1 row-span-2 flex-1 min-h-0 overflow-auto pointer-events-auto"
+  onclick={(e) => { if (e.target === e.currentTarget) sceneState.selected = null }}
+>
   <div class="px-3 flex items-center justify-between h-10 border-b">
     <span class="tracking-wider">Assets</span>
     <button
