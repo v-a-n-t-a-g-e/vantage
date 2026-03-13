@@ -3,10 +3,22 @@
   import * as THREE from 'three'
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
   import { TransformControls } from 'three/addons/controls/TransformControls.js'
-  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import { sceneState, sceneActions, setSceneActions } from '@/lib/sceneState.svelte.ts'
+  // sceneActions.value is the live reactive getter; setSceneActions mutates the backing state
   import { pushCommand } from '@/lib/history.svelte.ts'
+  import { loadGLTF } from '@/lib/gltfLoader.ts'
 
   let canvas: HTMLCanvasElement
+
+  async function handleFiles(files: FileList | null | undefined) {
+    if (!files) return
+    for (const file of files) {
+      if (!/\.(gltf|glb)$/i.test(file.name)) continue
+      const group = await loadGLTF(file)
+      const name = file.name.replace(/\.(gltf|glb)$/i, '')
+      sceneActions.value?.addObject(name, group)
+    }
+  }
 
   onMount(() => {
     // Renderer
@@ -103,7 +115,18 @@
     const tcHelper = transform.getHelper()
     scene.add(tcHelper)
 
-    // Objects
+    // Default scene objects (not in assets panel)
+    const grid = new THREE.PolarGridHelper(20, 8, 8, 64)
+    scene.add(grid)
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6)
+    scene.add(ambient)
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2)
+    dirLight.position.set(10, 20, 10)
+    scene.add(dirLight)
+
+    // User-editable objects
     const box = new THREE.Mesh(
       new THREE.BoxGeometry(10, 10, 10),
       new THREE.MeshStandardMaterial({ color: 0x888888 })
@@ -111,26 +134,31 @@
     box.name = 'Box'
     scene.add(box)
 
-    const grid = new THREE.PolarGridHelper(20, 8, 8, 64)
-    grid.name = 'Polar Grid'
-    scene.add(grid)
+    sceneState.objects = [{ name: box.name, object: box, visible: box.visible }]
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6)
-    ambient.name = 'Ambient Light'
-    scene.add(ambient)
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2)
-    dirLight.name = 'Directional Light'
-    dirLight.position.set(10, 20, 10)
-    scene.add(dirLight)
-
-    const dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 2)
-    scene.add(dirLightHelper)
-
-    // Expose named objects (skip internal helpers)
-    sceneState.objects = scene.children
-      .filter((o) => o !== tcHelper && o !== dirLightHelper)
-      .map((o) => ({ name: o.name, object: o, visible: o.visible }))
+    // Register scene actions
+    setSceneActions({
+      addObject(name, obj) {
+        // Deduplicate name
+        const existing = sceneState.objects.map((o) => o.name)
+        let uniqueName = name
+        let i = 1
+        while (existing.includes(uniqueName)) {
+          uniqueName = `${name} (${i++})`
+        }
+        obj.name = uniqueName
+        scene.add(obj)
+        sceneState.objects = [...sceneState.objects, { name: uniqueName, object: obj, visible: true }]
+      },
+      removeObject(item) {
+        scene.remove(item.object)
+        if (sceneState.selected === item) {
+          transform.detach()
+          sceneState.selected = null
+        }
+        sceneState.objects = sceneState.objects.filter((o) => o !== item)
+      },
+    })
 
     // Resize
     const ro = new ResizeObserver(() => {
@@ -141,7 +169,6 @@
     ro.observe(canvas)
 
     // Animate — poll sceneState for selection/mode changes
-    let boxHelper: THREE.BoxHelper | null = null
     let lastSelected = sceneState.selected
     let lastMode = sceneState.transformMode
 
@@ -152,14 +179,8 @@
 
       if (sceneState.selected !== lastSelected) {
         lastSelected = sceneState.selected
-        if (boxHelper) {
-          scene.remove(boxHelper)
-          boxHelper = null
-        }
         if (lastSelected) {
           transform.attach(lastSelected.object)
-          boxHelper = new THREE.BoxHelper(lastSelected.object, 0x01ff00)
-          scene.add(boxHelper)
         } else {
           transform.detach()
         }
@@ -170,13 +191,12 @@
         transform.setMode(lastMode)
       }
 
-      if (boxHelper) boxHelper.update()
-      dirLightHelper.update()
       renderer.render(scene, camera)
     }
     animate()
 
     return () => {
+      setSceneActions(null)
       cancelAnimationFrame(animId)
       ro.disconnect()
       transform.dispose()
@@ -185,4 +205,9 @@
   })
 </script>
 
-<canvas class="w-full h-full block" bind:this={canvas}></canvas>
+<canvas
+  class="w-full h-full block"
+  bind:this={canvas}
+  ondragover={(e) => e.preventDefault()}
+  ondrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer?.files) }}
+></canvas>

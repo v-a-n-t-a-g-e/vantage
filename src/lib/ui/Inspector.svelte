@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import Vec3Controls from '@/lib/ui/Vec3Controls.svelte'
 </script>
 
@@ -28,4 +28,8 @@
     labels={['x', 'y', 'z']}
     step={0.1}
   />
+  <button
+    class="ui-button w-full border-t text-red-400"
+    onclick={() => sceneActions.value?.removeObject(sceneState.selected!)}
+  >Delete</button>
 </aside>

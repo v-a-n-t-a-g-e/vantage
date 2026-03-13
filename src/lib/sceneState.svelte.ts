@@ -8,6 +8,11 @@ export type SceneObject = {
   visible: boolean
 }
 
+export type SceneActions = {
+  addObject: (name: string, obj: Object3D) => void
+  removeObject: (item: SceneObject) => void
+}
+
 type SceneState = {
   objects: SceneObject[]
   selected: SceneObject | null
@@ -21,3 +26,13 @@ export const sceneState: SceneState = $state({
   transformMode: 'translate',
   transformRevision: 0,
 })
+
+let _sceneActions: SceneActions | null = $state(null)
+
+export const sceneActions = {
+  get value() { return _sceneActions },
+}
+
+export function setSceneActions(actions: SceneActions | null) {
+  _sceneActions = actions
+}
