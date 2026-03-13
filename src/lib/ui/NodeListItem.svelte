@@ -1,10 +1,16 @@
-<script>
-  import { sceneState } from '@/lib/sceneState.svelte.js'
+<script lang="ts">
+  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import type { SceneObject } from '@/lib/sceneState.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
 
-  let { item, ontoggle } = $props()
+  interface Props {
+    item: SceneObject
+    ontoggle: (_item: SceneObject) => void
+  }
 
-  function toggleVisibility(e) {
+  let { item, ontoggle }: Props = $props()
+
+  function toggleVisibility(e: MouseEvent) {
     e.stopPropagation()
     ontoggle(item)
   }

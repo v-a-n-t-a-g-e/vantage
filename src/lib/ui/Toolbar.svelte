@@ -1,17 +1,19 @@
-<script>
-  import { sceneState } from '@/lib/sceneState.svelte.js'
+<script lang="ts">
+  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import type { TransformMode } from '@/lib/sceneState.svelte.ts'
+  import type { Component } from 'svelte'
 
   import IconTranslate from '@/assets/icons/Translate.svg'
   import IconRotate from '@/assets/icons/Rotate.svg'
   import IconScale from '@/assets/icons/Scale.svg'
 
-  /** @typedef {'translate'|'rotate'|'scale'} TransformMode */
-  /** @typedef {{ mode: TransformMode, icon: import('svelte').Component }} TransformModes */
-  const modes = /** @type {TransformModes[]} */ ([
+  type TransformModeItem = { mode: TransformMode; icon: Component }
+
+  const modes: TransformModeItem[] = [
     { mode: 'translate', icon: IconTranslate },
     { mode: 'rotate', icon: IconRotate },
     { mode: 'scale', icon: IconScale },
-  ])
+  ]
 </script>
 
 <div class="ui-container col-start-3 row-start-1 flex justify-self-end">

@@ -1,10 +1,29 @@
-<script>
+<script lang="ts">
   import { tick } from 'svelte'
 
-  /** @type {{ value: number, step?: number, precision?: number, label?: string, onchange: (v: number) => void, onstart?: () => void, onend?: (v: number) => void }} */
-  let { value, step = 1, precision = 2, label = '', onchange, onstart, onend, axis } = $props()
+  interface Props {
+    value: number
+    step?: number
+    precision?: number
+    label?: string
+    axis?: string
+    onchange: (_v: number) => void
+    onstart?: () => void
+    onend?: (_v: number) => void
+  }
 
-  let inputEl = $state(null)
+  let {
+    value,
+    step = 1,
+    precision = 2,
+    label = '',
+    axis,
+    onchange,
+    onstart,
+    onend,
+  }: Props = $props()
+
+  let inputEl = $state<HTMLInputElement | null>(null)
   let editing = $state(false)
   let editValue = $state(0)
 
@@ -12,10 +31,9 @@
   let currentValue = 0
   let accumulated = 0
 
-  const fmt = (v) => v.toFixed(precision)
+  const fmt = (v: number) => v.toFixed(precision)
 
-  /** @param {PointerEvent & { currentTarget: HTMLElement }} e */
-  function onpointerdown(e) {
+  function onpointerdown(e: PointerEvent & { currentTarget: HTMLElement }) {
     if (e.button !== 0) return
     e.currentTarget.setPointerCapture(e.pointerId)
     currentValue = value
@@ -25,8 +43,7 @@
     onstart?.()
   }
 
-  /** @param {PointerEvent} e */
-  function onpointermove(e) {
+  function onpointermove(e: PointerEvent) {
     if (!dragging) return
     accumulated += Math.abs(e.movementX)
     const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1
@@ -60,8 +77,7 @@
     editing = false
   }
 
-  /** @param {KeyboardEvent & { currentTarget: HTMLInputElement }} e */
-  function onkeydown(e) {
+  function onkeydown(e: KeyboardEvent & { currentTarget: HTMLInputElement }) {
     if (e.key === 'Enter') e.currentTarget.blur()
     if (e.key === 'Escape') {
       editing = false
@@ -74,7 +90,7 @@
 <div class="relative flex flex-col">
   <div class="flex justify-between items-center flex-row gap-2">
     <span class="capitalize opacity-50">{label}</span>
-    <div class="bg-current text-axis-{axis} w-full h-px"></div>
+    <div class="bg-current w-full h-px" style="background: var(--color-axis-{axis})"></div>
   </div>
 
   <span

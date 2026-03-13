@@ -1,5 +1,5 @@
-<script>
-  import { sceneState } from '@/lib/sceneState.svelte.js'
+<script lang="ts">
+  import { sceneState } from '@/lib/sceneState.svelte.ts'
   import Vec3Controls from '@/lib/ui/Vec3Controls.svelte'
 </script>
 

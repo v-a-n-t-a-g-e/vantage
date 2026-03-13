@@ -1,12 +1,12 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte'
   import * as THREE from 'three'
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
   import { TransformControls } from 'three/addons/controls/TransformControls.js'
-  import { sceneState } from '@/lib/sceneState.svelte.js'
-  import { pushCommand } from '@/lib/history.svelte.js'
+  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import { pushCommand } from '@/lib/history.svelte.ts'
 
-  let canvas
+  let canvas: HTMLCanvasElement
 
   onMount(() => {
     // Renderer
@@ -33,23 +33,23 @@
     // TransformControls — r168+: add getHelper() to scene, not the control itself
     const transform = new TransformControls(camera, canvas)
     const _cs = getComputedStyle(document.documentElement)
-    const _cc = (v) => new THREE.Color(_cs.getPropertyValue(v).trim())
+    const _cc = (v: string) => new THREE.Color(_cs.getPropertyValue(v).trim())
     transform.setColors(
       _cc('--color-axis-x'),
       _cc('--color-axis-y'),
       _cc('--color-axis-z'),
       _cc('--color-axis-x')
     )
-    const _gizmo = /** @type {any} */ (transform)._gizmo
+    const _gizmo = (transform as any)._gizmo
     const _origGizmoUpdate = _gizmo.updateMatrixWorld.bind(_gizmo)
-    _gizmo.updateMatrixWorld = function (force) {
+    _gizmo.updateMatrixWorld = function (force: boolean) {
       _origGizmoUpdate(force)
       if (this.axis) {
         const handles = [...this.gizmo[this.mode].children, ...this.helper[this.mode].children]
         for (const handle of handles) {
           if (!handle.material?._color) continue
           const isActive =
-            handle.name === this.axis || this.axis.split('').some((a) => handle.name === a)
+            handle.name === this.axis || this.axis.split('').some((a: string) => handle.name === a)
           if (isActive) {
             handle.material.color.copy(handle.material._color)
           } else {
@@ -58,14 +58,18 @@
         }
       }
     }
-    let dragSnapshot = /** @type {{ position: any, rotation: any, scale: any } | null} */ (null)
+    let dragSnapshot: {
+      position: THREE.Vector3
+      rotation: THREE.Euler
+      scale: THREE.Vector3
+    } | null = null
     transform.addEventListener('change', () => {
       sceneState.transformRevision++
     })
     transform.addEventListener('dragging-changed', (e) => {
-      orbit.enabled = !e.value
+      orbit.enabled = !(e as any).value
       const obj = sceneState.selected?.object
-      if (e.value) {
+      if ((e as any).value) {
         if (obj)
           dragSnapshot = {
             position: obj.position.clone(),
@@ -137,11 +141,11 @@
     ro.observe(canvas)
 
     // Animate — poll sceneState for selection/mode changes
-    let boxHelper = null
-    let lastSelected = null
+    let boxHelper: THREE.BoxHelper | null = null
+    let lastSelected = sceneState.selected
     let lastMode = sceneState.transformMode
 
-    let animId
+    let animId: number
     const animate = () => {
       animId = requestAnimationFrame(animate)
       orbit.update()
