@@ -1,18 +1,18 @@
 <script>
   import { tick } from 'svelte'
 
-  /** @type {{ value: number, step?: number, label?: string, onchange: (v: number) => void, onstart?: () => void, onend?: (v: number) => void }} */
-  let { value, step = 1, label = '', onchange, onstart, onend } = $props()
+  /** @type {{ value: number, step?: number, precision?: number, label?: string, onchange: (v: number) => void, onstart?: () => void, onend?: (v: number) => void }} */
+  let { value, step = 1, precision = 2, label = '', onchange, onstart, onend } = $props()
 
+  let inputEl = $state(null)
   let editing = $state(false)
   let editValue = $state(0)
-  let inputEl = $state(null)
 
   let dragging = false
   let currentValue = 0
   let accumulated = 0
 
-  const fmt = (v) => String(parseFloat(v.toFixed(2)))
+  const fmt = (v) => v.toFixed(precision)
 
   /** @param {PointerEvent & { currentTarget: HTMLElement }} e */
   function onpointerdown(e) {
@@ -60,39 +60,43 @@
     editing = false
   }
 
-  /** @param {KeyboardEvent & { currentTarget: HTMLElement }} e */
+  /** @param {KeyboardEvent & { currentTarget: HTMLInputElement }} e */
   function onkeydown(e) {
     if (e.key === 'Enter') e.currentTarget.blur()
-    if (e.key === 'Escape') editing = false
-    // Commit before undo/redo so the typed value is in history first
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'y')) commit()
+    if (e.key === 'Escape') {
+      editing = false
+      e.currentTarget.blur()
+    }
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'y')) e.currentTarget.blur()
   }
 </script>
 
 <div class="relative">
   <span
-    role="spinbutton"
-    aria-valuenow={value}
     tabindex="-1"
+    role="spinbutton"
     {onpointerdown}
     {onpointermove}
     {onpointerup}
-    onkeydown={(e) => {
+    onkeydown={async (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         editValue = value
         editing = true
         onstart?.()
+        await tick()
+        inputEl?.focus()
+        inputEl?.select()
       }
     }}
-    style:visibility={editing ? 'hidden' : 'visible'}
     class="flex items-center gap-1.5 w-full cursor-ew-resize select-none tnum"
+    class:invisible={editing}
   >
     {#if label}<span class="uppercase opacity-50">{label}</span>{/if}
     <span class="flex-1 text-right">{fmt(value)}</span>
   </span>
 
   <div class="absolute inset-0 flex items-center gap-1.5 tnum" class:pointer-events-none={!editing}>
-    {#if editing}<span class="uppercase opacity-50">{label}</span>{/if}
+    {#if editing && label}<span class="uppercase opacity-50">{label}</span>{/if}
     <input
       bind:this={inputEl}
       bind:value={editValue}

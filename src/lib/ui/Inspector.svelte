@@ -17,24 +17,21 @@
   let rotStart = { x: 0, y: 0, z: 0 }
   let scaleStart = { x: 1, y: 1, z: 1 }
 
-  /** @param {number} v */
-  const round2 = (v) => Math.round(v * 100) / 100
-
   onMount(() => {
     let animId
     const sync = () => {
       animId = requestAnimationFrame(sync)
       const obj = sceneState.selected?.object
       if (!obj || panel?.contains(document.activeElement)) return
-      pos.x = round2(obj.position.x)
-      pos.y = round2(obj.position.y)
-      pos.z = round2(obj.position.z)
-      rot.x = round2(obj.rotation.x * RAD2DEG)
-      rot.y = round2(obj.rotation.y * RAD2DEG)
-      rot.z = round2(obj.rotation.z * RAD2DEG)
-      scale.x = round2(obj.scale.x)
-      scale.y = round2(obj.scale.y)
-      scale.z = round2(obj.scale.z)
+      pos.x = obj.position.x
+      pos.y = obj.position.y
+      pos.z = obj.position.z
+      rot.x = obj.rotation.x * RAD2DEG
+      rot.y = obj.rotation.y * RAD2DEG
+      rot.z = obj.rotation.z * RAD2DEG
+      scale.x = obj.scale.x
+      scale.y = obj.scale.y
+      scale.z = obj.scale.z
     }
     sync()
     return () => cancelAnimationFrame(animId)
@@ -72,11 +69,11 @@
                 pushCommand({
                   undo: () => {
                     obj.position[axis] = before
-                    pos[axis] = round2(before)
+                    pos[axis] = before
                   },
                   redo: () => {
                     obj.position[axis] = v
-                    pos[axis] = round2(v)
+                    pos[axis] = v
                   },
                 })
             }}
@@ -112,11 +109,11 @@
                 pushCommand({
                   undo: () => {
                     obj.rotation[axis] = before
-                    rot[axis] = round2(before * RAD2DEG)
+                    rot[axis] = before * RAD2DEG
                   },
                   redo: () => {
                     obj.rotation[axis] = after
-                    rot[axis] = round2(v)
+                    rot[axis] = v
                   },
                 })
             }}
@@ -151,11 +148,11 @@
                 pushCommand({
                   undo: () => {
                     obj.scale[axis] = before
-                    scale[axis] = round2(before)
+                    scale[axis] = before
                   },
                   redo: () => {
                     obj.scale[axis] = v
-                    scale[axis] = round2(v)
+                    scale[axis] = v
                   },
                 })
             }}
