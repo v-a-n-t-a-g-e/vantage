@@ -1,11 +1,11 @@
 <script lang="ts">
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
-  import type { SceneObject } from '@/lib/sceneState.svelte.ts'
+  import type { ProjectionItem } from '@/lib/sceneState.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
 
   interface Props {
-    item: SceneObject
-    ontoggle: (_item: SceneObject) => void
+    item: ProjectionItem
+    ontoggle: (_item: ProjectionItem) => void
   }
 
   let { item, ontoggle }: Props = $props()
@@ -16,28 +16,18 @@
   }
 
   function select() {
-    sceneState.selected = item
-    sceneState.selectedProjection = null
+    sceneState.selectedProjection = item
+    sceneState.selected = null
   }
 </script>
 
 <div
   class="group flex items-center h-10 gap-2 px-3 cursor-pointer select-none"
-  class:bg-brand={sceneState.selected === item}
+  class:bg-brand={sceneState.selectedProjection === item}
   role="button"
   tabindex="0"
   onclick={select}
-  ondblclick={() => {
-    sceneState.selected = item
-    sceneActions.value?.focusObject(item)
-  }}
   onkeydown={(e) => e.key === 'Enter' && select()}
-  onmouseenter={() => {
-    sceneState.hovered = item
-  }}
-  onmouseleave={() => {
-    sceneState.hovered = null
-  }}
 >
   <span class:opacity-40={!item.visible}>{item.name}</span>
 

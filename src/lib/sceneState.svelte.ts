@@ -1,4 +1,5 @@
 import type { Object3D } from 'three'
+import type { VantageProjection } from 'vantage-renderer'
 
 export type TransformMode = 'translate' | 'rotate' | 'scale'
 
@@ -14,17 +15,31 @@ export type SceneObject = {
   source: SceneObjectSource
 }
 
+export type ProjectionItem = {
+  id: string
+  name: string
+  projection: VantageProjection
+  visible: boolean
+  imageBlob?: Blob
+  imagePath: string
+}
+
 export type SceneActions = {
   addObject: (_name: string, _obj: Object3D, _source: SceneObjectSource) => void
   removeObject: (_item: SceneObject) => void
   focusObject: (_item: SceneObject) => void
   clearScene: () => void
   addObjectSilent: (_name: string, _obj: Object3D, _source: SceneObjectSource) => SceneObject
+  addProjection: (_name: string, _projection: VantageProjection, _imageBlob: Blob, _imagePath: string) => void
+  removeProjection: (_item: ProjectionItem) => void
+  addProjectionSilent: (_name: string, _projection: VantageProjection, _imagePath: string) => ProjectionItem
 }
 
 type SceneState = {
   objects: SceneObject[]
+  projections: ProjectionItem[]
   selected: SceneObject | null
+  selectedProjection: ProjectionItem | null
   hovered: SceneObject | null
   transformMode: TransformMode
   transformRevision: number
@@ -32,7 +47,9 @@ type SceneState = {
 
 export const sceneState: SceneState = $state({
   objects: [],
+  projections: [],
   selected: null,
+  selectedProjection: null,
   hovered: null,
   transformMode: 'translate',
   transformRevision: 0,

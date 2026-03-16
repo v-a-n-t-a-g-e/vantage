@@ -1,6 +1,6 @@
 import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
 import { projectState } from '@/lib/project/projectState.svelte.ts'
-import { serializeScene, deserializeScene } from '@/lib/project/serializer.ts'
+import { serializeScene, deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
 import { exportToGLB } from '@/lib/project/glbExporter.ts'
 import { createProjectFS, supportsNativeFS } from '@/lib/project/fileSystem.ts'
 import type { ProjectFS } from '@/lib/project/fileSystem.ts'
@@ -21,6 +21,7 @@ export function setGetCameraState(fn: typeof getCameraState) {
 
 const PROJECT_DIRS = [
   'geometry',
+  'projections',
   'cameras',
   'cameras/frames',
   'colmap',
@@ -51,7 +52,15 @@ async function writeProjectFiles(fs: ProjectFS) {
     }
   }
 
-  const manifest = serializeScene(sceneState.objects, getCameraState?.())
+  // Write projection images
+  for (const item of sceneState.projections) {
+    if (item.imageBlob) {
+      await fs.writeFile(item.imagePath, item.imageBlob)
+      item.imageBlob = undefined
+    }
+  }
+
+  const manifest = serializeScene(sceneState.objects, getCameraState?.(), sceneState.projections)
   await fs.writeFile('scene.json', JSON.stringify(manifest, null, 2))
 }
 
@@ -127,6 +136,28 @@ function pickDirectory(): Promise<File[]> {
   })
 }
 
+async function loadProjection(
+  manifest: import('@/lib/project/types.ts').SceneManifest,
+  readFile: (path: string) => Promise<File>
+) {
+  if (!manifest.projections?.length) return
+
+  const projections = await deserializeProjections(manifest.projections, readFile)
+  for (const p of projections) {
+    const item = sceneActions.value?.addProjectionSilent(p.name, p.projection, p.imagePath)
+    if (item) {
+      item.id = p.id
+      item.visible = p.visible
+      // If not visible, unproject from all objects (addProjectionSilent projects by default)
+      if (!p.visible) {
+        for (const obj of sceneState.objects) {
+          p.projection.unproject(obj.object)
+        }
+      }
+    }
+  }
+}
+
 async function loadFromFiles(files: File[]) {
   projectState.busy = true
   try {
@@ -145,6 +176,8 @@ async function loadFromFiles(files: File[]) {
         item.object.visible = obj.visible
       }
     }
+
+    await loadProjection(manifest, (path) => fs.readFile(path))
 
     // Derive project name from the root directory in webkitRelativePath
     const firstFile = files[0]
@@ -188,6 +221,8 @@ async function loadFromHandle(handle: FileSystemDirectoryHandle) {
         item.object.visible = obj.visible
       }
     }
+
+    await loadProjection(manifest, (path) => fs.readFile(path))
 
     projectState.directoryHandle = handle
     projectState.memoryFS = null

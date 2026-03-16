@@ -1,6 +1,7 @@
-import type { SceneObject, SceneObjectSource } from '@/lib/sceneState.svelte.ts'
-import type { SceneManifest, SceneObjectEntry } from '@/lib/project/types.ts'
+import type { SceneObject, SceneObjectSource, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+import type { SceneManifest, SceneObjectEntry, ProjectionEntry } from '@/lib/project/types.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
+import { VantageProjection, loadTexture } from 'vantage-renderer'
 
 export function serializeScene(
   objects: SceneObject[],
@@ -8,7 +9,8 @@ export function serializeScene(
     position: { x: number; y: number; z: number }
     target: { x: number; y: number; z: number }
     fov: number
-  }
+  },
+  projections?: ProjectionItem[]
 ): SceneManifest {
   const entries: SceneObjectEntry[] = objects.map((item) => {
     const obj = item.object
@@ -41,6 +43,25 @@ export function serializeScene(
       target: [camera.target.x, camera.target.y, camera.target.z],
       fov: camera.fov,
     }
+  }
+
+  if (projections && projections.length > 0) {
+    manifest.projections = projections.map((item) => {
+      const p = item.projection
+      return {
+        id: item.id,
+        name: item.name,
+        imagePath: item.imagePath,
+        transform: {
+          position: [p.position.x, p.position.y, p.position.z],
+          rotation: [p.rotation.x, p.rotation.y, p.rotation.z],
+        },
+        fov: p.fov,
+        near: p.near,
+        far: p.far,
+        visible: item.visible,
+      }
+    })
   }
 
   return manifest
@@ -97,6 +118,55 @@ export async function deserializeScene(
       source,
       visible: entry.visible,
     })
+  }
+
+  return results
+}
+
+export async function deserializeProjections(
+  entries: ProjectionEntry[],
+  readFile: (path: string) => Promise<File>
+): Promise<
+  {
+    id: string
+    name: string
+    projection: VantageProjection
+    visible: boolean
+    imagePath: string
+  }[]
+> {
+  const results: {
+    id: string
+    name: string
+    projection: VantageProjection
+    visible: boolean
+    imagePath: string
+  }[] = []
+
+  for (const entry of entries) {
+    const file = await readFile(entry.imagePath)
+    const url = URL.createObjectURL(file)
+    try {
+      const texture = await loadTexture(url)
+      const projection = new VantageProjection({
+        texture,
+        fov: entry.fov,
+        near: entry.near,
+        far: entry.far,
+      })
+      projection.position.set(...entry.transform.position)
+      projection.rotation.set(...entry.transform.rotation)
+
+      results.push({
+        id: entry.id,
+        name: entry.name,
+        projection,
+        visible: entry.visible,
+        imagePath: entry.imagePath,
+      })
+    } finally {
+      URL.revokeObjectURL(url)
+    }
   }
 
   return results

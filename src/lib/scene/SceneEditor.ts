@@ -1,12 +1,38 @@
 import * as THREE from 'three'
 import { sceneState, setSceneActions } from '@/lib/sceneState.svelte.ts'
-import type { SceneObject, SceneObjectSource } from '@/lib/sceneState.svelte.ts'
+import type { SceneObject, SceneObjectSource, ProjectionItem } from '@/lib/sceneState.svelte.ts'
 import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
 import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'
 import { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { themeColors } from '@/lib/scene/themeColors.ts'
+import { VantageProjection, loadTexture } from 'vantage-renderer'
+
+/**
+ * VantageProjection._applyMaterial wraps mesh.material into an array [mat]
+ * and adds a projection group at materialIndex = material.length.
+ * This breaks meshes whose groups reference materialIndex > 0 while using a
+ * single material (e.g. BoxGeometry has groups with materialIndex 0‑5).
+ * After wrapping, only index 0 is valid — indices 1‑5 become undefined.
+ *
+ * Fix: before projecting, collapse all single-material groups to materialIndex 0.
+ */
+function normalizeGroupsForProjection(object: THREE.Object3D) {
+  object.traverse((child) => {
+    if (!(child as THREE.Mesh).isMesh) return
+    const mesh = child as THREE.Mesh
+    if (Array.isArray(mesh.material) || mesh.geometry.groups.length === 0) return
+
+    // Single material but groups with varying materialIndex → remap to 0
+    const needsRemap = mesh.geometry.groups.some((g) => g.materialIndex !== 0)
+    if (needsRemap) {
+      for (const g of mesh.geometry.groups) {
+        g.materialIndex = 0
+      }
+    }
+  })
+}
 
 export class SceneEditor {
   private renderer: THREE.WebGLRenderer
@@ -15,7 +41,9 @@ export class SceneEditor {
   private rig: CameraRig
   private gizmo: TransformGizmo
   private hoverHelper: THREE.BoxHelper | null = null
+  private projectionHelper: THREE.CameraHelper | null = null
   private lastSelected: SceneObject | null = null
+  private lastSelectedProjection: ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
   private lastMode = sceneState.transformMode
   private animId = 0
@@ -23,7 +51,7 @@ export class SceneEditor {
 
   constructor(canvas: HTMLCanvasElement) {
     // Renderer
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
     this.renderer.setClearColor(0xf3e7fd)
@@ -78,14 +106,45 @@ export class SceneEditor {
         for (const item of [...sceneState.objects]) {
           this.scene.remove(item.object)
         }
+        for (const item of [...sceneState.projections]) {
+          item.projection.unproject(this.scene)
+          item.projection.dispose()
+          this.scene.remove(item.projection)
+        }
         this.gizmo.detach()
         sceneState.objects = []
+        sceneState.projections = []
         sceneState.selected = null
+        sceneState.selectedProjection = null
         sceneState.hovered = null
         clearHistory()
       },
       addObjectSilent: (name, obj, source) => {
         return this.doAdd(name, obj, source)
+      },
+      addProjection: (name, projection, imageBlob, imagePath) => {
+        const item = this.doAddProjection(name, projection, imagePath, imageBlob)
+        pushCommand({
+          undo: () => this.doRemoveProjection(item),
+          redo: () =>
+            this.doAddProjection(item.name, item.projection, item.imagePath, item.imageBlob),
+        })
+      },
+      removeProjection: (item) => {
+        const wasSelected = sceneState.selectedProjection?.projection === item.projection
+        this.doRemoveProjection(item)
+        pushCommand({
+          undo: () => {
+            this.doAddProjection(item.name, item.projection, item.imagePath, item.imageBlob)
+            if (wasSelected)
+              sceneState.selectedProjection =
+                sceneState.projections[sceneState.projections.length - 1]
+          },
+          redo: () => this.doRemoveProjection(item),
+        })
+      },
+      addProjectionSilent: (name, projection, imagePath) => {
+        return this.doAddProjection(name, projection, imagePath)
       },
     })
 
@@ -140,6 +199,7 @@ export class SceneEditor {
       if (isDragging) return
       if (this.gizmo.axis !== null) return
       sceneState.selected = pick(e.clientX, e.clientY)
+      sceneState.selectedProjection = null
     })
 
     // Drag-and-drop file import
@@ -195,11 +255,26 @@ export class SceneEditor {
       source,
     }
     sceneState.objects = [...sceneState.objects, item]
+
+    // Apply all visible projections to the new object
+    if (sceneState.projections.length > 0) {
+      normalizeGroupsForProjection(obj)
+      for (const p of sceneState.projections) {
+        if (p.visible) p.projection.project(obj)
+      }
+    }
+
     return item
   }
 
   private doRemove(item: SceneObject) {
     const obj = item.object
+
+    // Unproject all projections from this object before removing
+    for (const p of sceneState.projections) {
+      p.projection.unproject(obj)
+    }
+
     this.scene.remove(obj)
     if (sceneState.selected?.object === obj) {
       this.gizmo.detach()
@@ -211,22 +286,94 @@ export class SceneEditor {
     sceneState.objects = sceneState.objects.filter((o) => o.object !== obj)
   }
 
+  private doAddProjection(
+    name: string,
+    projection: VantageProjection,
+    imagePath: string,
+    imageBlob?: Blob
+  ): ProjectionItem {
+    const existingNames = [
+      ...sceneState.objects.map((o) => o.name),
+      ...sceneState.projections.map((p) => p.name),
+    ]
+    let uniqueName = name
+    let i = 1
+    while (existingNames.includes(uniqueName)) {
+      uniqueName = `${name} (${i++})`
+    }
+
+    this.scene.add(projection)
+
+    // Normalize geometry groups and project onto all visible scene objects
+    for (const obj of sceneState.objects) {
+      if (obj.visible) {
+        normalizeGroupsForProjection(obj.object)
+        projection.project(obj.object)
+      }
+    }
+
+    const item: ProjectionItem = {
+      id: crypto.randomUUID(),
+      name: uniqueName,
+      projection,
+      visible: true,
+      imageBlob,
+      imagePath,
+    }
+    sceneState.projections = [...sceneState.projections, item]
+    return item
+  }
+
+  private doRemoveProjection(item: ProjectionItem) {
+    // Unproject from all objects
+    for (const obj of sceneState.objects) {
+      item.projection.unproject(obj.object)
+    }
+
+    this.scene.remove(item.projection)
+
+    if (sceneState.selectedProjection?.projection === item.projection) {
+      this.gizmo.detach()
+      sceneState.selectedProjection = null
+    }
+
+    item.projection.dispose()
+    sceneState.projections = sceneState.projections.filter((p) => p.projection !== item.projection)
+  }
+
   private async handleFiles(files: FileList | null | undefined) {
     if (!files) return
     for (const file of files) {
-      if (!/\.(gltf|glb)$/i.test(file.name)) continue
-      const { group, blob } = await loadGLTF(file)
-      const name = file.name.replace(/\.(gltf|glb)$/i, '')
-      const source: SceneObjectSource = {
-        kind: 'imported',
-        relativePath: `geometry/${file.name}`,
-        originalBlob: blob,
+      if (/\.(gltf|glb)$/i.test(file.name)) {
+        const { group, blob } = await loadGLTF(file)
+        const name = file.name.replace(/\.(gltf|glb)$/i, '')
+        const source: SceneObjectSource = {
+          kind: 'imported',
+          relativePath: `geometry/${file.name}`,
+          originalBlob: blob,
+        }
+        const item = this.doAdd(name, group, source)
+        pushCommand({
+          undo: () => this.doRemove(item),
+          redo: () => this.doAdd(item.name, item.object, item.source),
+        })
+      } else if (/\.(jpe?g|png|webp)$/i.test(file.name)) {
+        const url = URL.createObjectURL(file)
+        try {
+          const texture = await loadTexture(url)
+          const projection = new VantageProjection({ texture })
+          const name = file.name.replace(/\.(jpe?g|png|webp)$/i, '')
+          const imagePath = `projections/${file.name}`
+          const item = this.doAddProjection(name, projection, imagePath, file)
+          pushCommand({
+            undo: () => this.doRemoveProjection(item),
+            redo: () =>
+              this.doAddProjection(item.name, item.projection, item.imagePath, item.imageBlob),
+          })
+        } finally {
+          URL.revokeObjectURL(url)
+        }
       }
-      const item = this.doAdd(name, group, source)
-      pushCommand({
-        undo: () => this.doRemove(item),
-        redo: () => this.doAdd(item.name, item.object, item.source),
-      })
     }
   }
 
@@ -242,15 +389,36 @@ export class SceneEditor {
     this.animId = requestAnimationFrame(() => this.animate())
     this.rig.tick()
 
-    // Selection changes
+    // Object selection changes
     if (sceneState.selected !== this.lastSelected) {
       this.lastSelected = sceneState.selected
       if (this.lastSelected) {
         this.gizmo.attach(this.lastSelected.object)
-      } else {
+      } else if (!sceneState.selectedProjection) {
         this.gizmo.detach()
       }
     }
+
+    // Projection selection changes
+    if (sceneState.selectedProjection !== this.lastSelectedProjection) {
+      // Clean up old projection helper
+      if (this.projectionHelper) {
+        this.scene.remove(this.projectionHelper)
+        this.projectionHelper = null
+      }
+
+      this.lastSelectedProjection = sceneState.selectedProjection
+      if (this.lastSelectedProjection) {
+        this.gizmo.attach(this.lastSelectedProjection.projection)
+        this.projectionHelper = new THREE.CameraHelper(this.lastSelectedProjection.projection)
+        this.scene.add(this.projectionHelper)
+      } else if (!sceneState.selected) {
+        this.gizmo.detach()
+      }
+    }
+
+    // Update projection helper if it exists
+    if (this.projectionHelper) this.projectionHelper.update()
 
     // Transform mode changes
     if (sceneState.transformMode !== this.lastMode) {
@@ -272,6 +440,26 @@ export class SceneEditor {
     }
     if (this.hoverHelper) this.hoverHelper.update()
 
+    // Hide helpers during projection depth pass to avoid feedback loops
+    // (VantageProjection._createDepthMap renders the full scene to a render target)
+    const gizmoHelper = this.gizmo.getHelper()
+    const gizmoWasVisible = gizmoHelper.visible
+    const helperWasVisible = this.projectionHelper?.visible ?? false
+    const hoverWasVisible = this.hoverHelper?.visible ?? false
+    gizmoHelper.visible = false
+    if (this.projectionHelper) this.projectionHelper.visible = false
+    if (this.hoverHelper) this.hoverHelper.visible = false
+
+    // Update all visible projections
+    for (const p of sceneState.projections) {
+      if (p.visible) p.projection.update(this.renderer, this.scene)
+    }
+
+    // Restore helpers
+    gizmoHelper.visible = gizmoWasVisible
+    if (this.projectionHelper) this.projectionHelper.visible = helperWasVisible
+    if (this.hoverHelper) this.hoverHelper.visible = hoverWasVisible
+
     this.renderer.render(this.scene, this.camera)
   }
 
@@ -280,6 +468,10 @@ export class SceneEditor {
     cancelAnimationFrame(this.animId)
     this.ro.disconnect()
     this.gizmo.dispose()
+    if (this.projectionHelper) this.scene.remove(this.projectionHelper)
+    for (const p of sceneState.projections) {
+      p.projection.dispose()
+    }
     this.renderer.dispose()
   }
 }
