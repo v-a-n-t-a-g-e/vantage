@@ -17,7 +17,7 @@
     object={sceneState.selected?.object}
     prop="rotation"
     labels={['pitch', 'yaw', 'roll']}
-    step={1}
+    step={0.1}
     toDisplay={(v) => v * (180 / Math.PI)}
     fromDisplay={(v) => v * (Math.PI / 180)}
   />
@@ -26,10 +26,10 @@
     object={sceneState.selected?.object}
     prop="scale"
     labels={['x', 'y', 'z']}
-    step={0.1}
+    step={0.01}
   />
   <button
     class="ui-button w-full border-t text-red-400"
-    onclick={() => sceneActions.value?.removeObject(sceneState.selected!)}
-  >Delete</button>
+    onclick={() => sceneActions.value?.removeObject(sceneState.selected!)}>Delete</button
+  >
 </aside>
