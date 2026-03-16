@@ -1,6 +1,6 @@
 type Shortcut = {
   key: string
-  meta?: boolean  // Cmd (mac) / Ctrl (win)
+  meta?: boolean // Cmd (mac) / Ctrl (win)
   shift?: boolean
   alt?: boolean
   action: () => void

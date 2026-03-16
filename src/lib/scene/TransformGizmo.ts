@@ -6,11 +6,7 @@ import { pushCommand } from '@/lib/history.svelte.ts'
 import { themeColors } from '@/lib/scene/themeColors.ts'
 
 export class TransformGizmo extends TransformControls {
-  constructor(
-    camera: THREE.Camera,
-    canvas: HTMLCanvasElement,
-    orbit: OrbitControls
-  ) {
+  constructor(camera: THREE.Camera, canvas: HTMLCanvasElement, orbit: OrbitControls) {
     super(camera, canvas)
 
     // Apply CSS-variable axis colors
@@ -37,7 +33,11 @@ export class TransformGizmo extends TransformControls {
     }
 
     // Drag snapshot for undo/redo
-    let dragSnapshot: { position: THREE.Vector3; rotation: THREE.Euler; scale: THREE.Vector3 } | null = null
+    let dragSnapshot: {
+      position: THREE.Vector3
+      rotation: THREE.Euler
+      scale: THREE.Vector3
+    } | null = null
 
     this.addEventListener('change', () => {
       sceneState.transformRevision++

@@ -9,10 +9,7 @@ export interface ProjectFS {
 }
 
 export function createProjectFS(root: FileSystemDirectoryHandle): ProjectFS {
-  async function getNestedDir(
-    path: string,
-    create: boolean,
-  ): Promise<FileSystemDirectoryHandle> {
+  async function getNestedDir(path: string, create: boolean): Promise<FileSystemDirectoryHandle> {
     const parts = path.split('/').filter(Boolean)
     let dir = root
     for (const part of parts) {

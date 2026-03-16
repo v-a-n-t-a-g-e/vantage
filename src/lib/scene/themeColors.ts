@@ -15,8 +15,16 @@ function resolveColor(varName: string): THREE.Color {
 }
 
 export const themeColors = {
-  get axisX() { return resolveColor('--color-axis-x') },
-  get axisY() { return resolveColor('--color-axis-y') },
-  get axisZ() { return resolveColor('--color-axis-z') },
-  get brand() { return resolveColor('--color-brand') },
+  get axisX() {
+    return resolveColor('--color-axis-x')
+  },
+  get axisY() {
+    return resolveColor('--color-axis-y')
+  },
+  get axisZ() {
+    return resolveColor('--color-axis-z')
+  },
+  get brand() {
+    return resolveColor('--color-brand')
+  },
 }

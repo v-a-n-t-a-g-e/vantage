@@ -4,7 +4,11 @@ import { loadGLTF } from '@/lib/gltfLoader.ts'
 
 export function serializeScene(
   objects: SceneObject[],
-  camera?: { position: { x: number; y: number; z: number }; target: { x: number; y: number; z: number }; fov: number },
+  camera?: {
+    position: { x: number; y: number; z: number }
+    target: { x: number; y: number; z: number }
+    fov: number
+  }
 ): SceneManifest {
   const entries: SceneObjectEntry[] = objects.map((item) => {
     const obj = item.object
@@ -44,9 +48,23 @@ export function serializeScene(
 
 export async function deserializeScene(
   manifest: SceneManifest,
-  readFile: (path: string) => Promise<File>,
-): Promise<{ name: string; object: import('three').Object3D; source: SceneObjectSource; id: string; visible: boolean }[]> {
-  const results: { name: string; object: import('three').Object3D; source: SceneObjectSource; id: string; visible: boolean }[] = []
+  readFile: (path: string) => Promise<File>
+): Promise<
+  {
+    name: string
+    object: import('three').Object3D
+    source: SceneObjectSource
+    id: string
+    visible: boolean
+  }[]
+> {
+  const results: {
+    name: string
+    object: import('three').Object3D
+    source: SceneObjectSource
+    id: string
+    visible: boolean
+  }[] = []
 
   for (const entry of manifest.objects) {
     let filePath: string

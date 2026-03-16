@@ -8,9 +8,7 @@ export interface SceneObjectEntry {
   id: string
   name: string
   type: 'mesh' | 'pointcloud' | 'splat' | 'group'
-  source:
-    | { kind: 'primitive'; geometryType: string }
-    | { kind: 'imported'; path: string }
+  source: { kind: 'primitive'; geometryType: string } | { kind: 'imported'; path: string }
   transform: {
     position: [number, number, number]
     rotation: [number, number, number]

@@ -41,7 +41,9 @@ export const sceneState: SceneState = $state({
 let _sceneActions: SceneActions | null = $state(null)
 
 export const sceneActions = {
-  get value() { return _sceneActions },
+  get value() {
+    return _sceneActions
+  },
 }
 
 export function setSceneActions(actions: SceneActions | null) {

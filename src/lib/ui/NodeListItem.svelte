@@ -26,10 +26,17 @@
   role="button"
   tabindex="0"
   onclick={select}
-  ondblclick={() => { sceneState.selected = item; sceneActions.value?.focusObject(item) }}
+  ondblclick={() => {
+    sceneState.selected = item
+    sceneActions.value?.focusObject(item)
+  }}
   onkeydown={(e) => e.key === 'Enter' && select()}
-  onmouseenter={() => { sceneState.hovered = item }}
-  onmouseleave={() => { sceneState.hovered = null }}
+  onmouseenter={() => {
+    sceneState.hovered = item
+  }}
+  onmouseleave={() => {
+    sceneState.hovered = null
+  }}
 >
   <span class:opacity-40={!item.visible}>{item.name}</span>
 

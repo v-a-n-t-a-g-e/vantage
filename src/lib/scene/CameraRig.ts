@@ -8,7 +8,9 @@ export class CameraRig extends OrbitControls {
 
   constructor(camera: THREE.Camera, canvas: HTMLElement) {
     super(camera, canvas)
-    this.addEventListener('start', () => { this.flyTarget = null })
+    this.addEventListener('start', () => {
+      this.flyTarget = null
+    })
   }
 
   focusObject(object: THREE.Object3D) {

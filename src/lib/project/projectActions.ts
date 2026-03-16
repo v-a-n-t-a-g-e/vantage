@@ -7,13 +7,28 @@ import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 import { createMemoryFS, exportAsZip, downloadBlob } from '@/lib/project/memoryFS.ts'
 import { storeHandle, getStoredHandle, clearStoredHandle } from '@/lib/project/handleStore.ts'
 
-let getCameraState: (() => { position: { x: number; y: number; z: number }; target: { x: number; y: number; z: number }; fov: number }) | null = null
+let getCameraState:
+  | (() => {
+      position: { x: number; y: number; z: number }
+      target: { x: number; y: number; z: number }
+      fov: number
+    })
+  | null = null
 
 export function setGetCameraState(fn: typeof getCameraState) {
   getCameraState = fn
 }
 
-const PROJECT_DIRS = ['geometry', 'cameras', 'cameras/frames', 'colmap', 'pointcloud', 'splat', 'segmentation', 'video']
+const PROJECT_DIRS = [
+  'geometry',
+  'cameras',
+  'cameras/frames',
+  'colmap',
+  'pointcloud',
+  'splat',
+  'segmentation',
+  'video',
+]
 
 async function ensureDirectories(fs: ProjectFS) {
   for (const dir of PROJECT_DIRS) {
