@@ -115,7 +115,7 @@
     <span class="flex-1 text-right">{fmt(value)}</span>
   </span>
 
-  <div class="absolute inset-0 flex items-center gap-1.5 tnum" class:pointer-events-none={!editing}>
+  <div class="absolute inset-0 flex items-end gap-1.5 tnum" class:pointer-events-none={!editing}>
     <input
       bind:this={inputEl}
       bind:value={editValue}
