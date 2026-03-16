@@ -1,3 +1,7 @@
+export function supportsNativeFS(): boolean {
+  return 'showDirectoryPicker' in window
+}
+
 export interface ProjectFS {
   readFile(path: string): Promise<File>
   writeFile(path: string, data: Blob | string): Promise<void>

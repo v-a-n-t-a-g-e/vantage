@@ -12,3 +12,8 @@ interface FileSystemDirectoryHandle {
 interface Window {
   showDirectoryPicker(options?: { mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>
 }
+
+// webkitdirectory attribute for directory picker fallback
+interface HTMLInputElement {
+  webkitdirectory: boolean
+}
