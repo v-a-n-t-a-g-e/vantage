@@ -1,5 +1,5 @@
 import type { SceneObject, SceneObjectSource } from '@/lib/sceneState.svelte.ts'
-import type { SceneManifest, SceneObjectEntry, CameraState } from '@/lib/project/types.ts'
+import type { SceneManifest, SceneObjectEntry } from '@/lib/project/types.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
 
 export function serializeScene(

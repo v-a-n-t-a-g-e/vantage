@@ -6,7 +6,7 @@ declare module '*.svg' {
 
 // File System Access API (Chromium)
 interface FileSystemDirectoryHandle {
-  requestPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>
+  requestPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<'granted' | 'denied' | 'prompt'>
 }
 
 interface Window {

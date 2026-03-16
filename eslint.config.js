@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import globals from 'globals'
+import tseslint from 'typescript-eslint'
 import sveltePlugin from 'eslint-plugin-svelte'
 import svelteParser from 'svelte-eslint-parser'
 import tsParser from '@typescript-eslint/parser'
@@ -13,6 +14,9 @@ export default [
         ...globals.browser,
         ...globals.node,
       },
+    },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
@@ -29,6 +33,13 @@ export default [
         $host: 'readonly',
       },
     },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
   },
   {
     files: ['**/*.svelte'],
@@ -37,11 +48,6 @@ export default [
       parserOptions: {
         parser: tsParser,
       },
-    },
-  },
-  {
-    rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
