@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Logo from '@/lib/Logo.svg'
+  import Logo from '@/assets/icons/Vantage.svg'
 
   let fileOpen = $state(false)
 </script>

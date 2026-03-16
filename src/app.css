@@ -2,8 +2,8 @@
 
 @theme {
   --color-green: #01ff00;
-  --color-blue: #0084ff;
-  --color-red: #ff3000;
+  --color-blue: #41b8ff;
+  --color-red: #ff7704;
 
   --color-brand: var(--color-green);
 
@@ -46,4 +46,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.bg-axis-x {
+  @apply bg-axis-x;
 }
