@@ -63,12 +63,12 @@ export class SceneEditor {
         })
       },
       removeObject: (item) => {
-        const wasSelected = sceneState.selected === item
+        const wasSelected = sceneState.selected?.object === item.object
         this.doRemove(item)
         pushCommand({
           undo: () => {
-            const restored = this.doAdd(item.name, item.object)
-            if (wasSelected) sceneState.selected = restored
+            this.doAdd(item.name, item.object)
+            if (wasSelected) sceneState.selected = sceneState.objects[sceneState.objects.length - 1]
           },
           redo: () => this.doRemove(item),
         })
@@ -111,15 +111,16 @@ export class SceneEditor {
   }
 
   private doRemove(item: SceneObject) {
-    this.scene.remove(item.object)
-    if (sceneState.selected === item) {
+    const obj = item.object
+    this.scene.remove(obj)
+    if (sceneState.selected?.object === obj) {
       this.gizmo.detach()
       sceneState.selected = null
     }
-    if (sceneState.hovered === item) {
+    if (sceneState.hovered?.object === obj) {
       sceneState.hovered = null
     }
-    sceneState.objects = sceneState.objects.filter((o) => o !== item)
+    sceneState.objects = sceneState.objects.filter((o) => o.object !== obj)
   }
 
   private async handleFiles(files: FileList | null | undefined) {
