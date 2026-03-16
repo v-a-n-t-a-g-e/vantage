@@ -1,8 +1,31 @@
 <script lang="ts">
   import Logo from '@/assets/icons/Vantage.svg'
+  import { projectState } from '@/lib/project/projectState.svelte.ts'
+  import { saveProject, openProject, newProject } from '@/lib/project/projectActions.ts'
 
   let fileOpen = $state(false)
+
+  function closeMenu() {
+    fileOpen = false
+  }
+
+  async function handleNew() {
+    closeMenu()
+    await newProject()
+  }
+
+  async function handleOpen() {
+    closeMenu()
+    await openProject()
+  }
+
+  async function handleSave() {
+    closeMenu()
+    await saveProject()
+  }
 </script>
+
+<svelte:window onclick={() => { if (fileOpen) fileOpen = false }} />
 
 <nav class="ui-container flex justify-self-start items-center">
   <div class="ui-button text-brand hover:text-white"><Logo /></div>
@@ -10,16 +33,28 @@
     class="relative cursor-pointer select-none ui-button"
     role="button"
     tabindex="0"
-    onclick={() => (fileOpen = !fileOpen)}
+    onclick={(e) => { e.stopPropagation(); fileOpen = !fileOpen }}
     onkeydown={(e) => e.key === 'Enter' && (fileOpen = !fileOpen)}
   >
     File
+    {#if projectState.dirty}
+      <span class="text-brand ml-0.5">*</span>
+    {/if}
     {#if fileOpen}
-      <ul class="absolute top-full left-0 min-w-30 list-none m-0 p-0 z-10">
-        <li class="px-2.5 py-1 cursor-pointer">New</li>
-        <li class="px-2.5 py-1 cursor-pointer">Open</li>
-        <li class="px-2.5 py-1 cursor-pointer">Save</li>
-      </ul>
+      <div class="absolute top-full left-0 min-w-40 z-10 flex flex-col">
+        <button class="px-2.5 py-1 cursor-pointer flex justify-between text-left" onclick={handleNew}>
+          <span>New</span>
+          <span class="opacity-40 text-xs ml-4">Cmd+N</span>
+        </button>
+        <button class="px-2.5 py-1 cursor-pointer flex justify-between text-left" onclick={handleOpen}>
+          <span>Open</span>
+          <span class="opacity-40 text-xs ml-4">Cmd+O</span>
+        </button>
+        <button class="px-2.5 py-1 cursor-pointer flex justify-between text-left" onclick={handleSave}>
+          <span>Save</span>
+          <span class="opacity-40 text-xs ml-4">Cmd+S</span>
+        </button>
+      </div>
     {/if}
   </div>
   <div class="cursor-pointer select-none ui-button">View</div>

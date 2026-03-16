@@ -3,3 +3,12 @@ declare module '*.svg' {
   const component: Component
   export default component
 }
+
+// File System Access API (Chromium)
+interface FileSystemDirectoryHandle {
+  requestPermission(descriptor: { mode: 'read' | 'readwrite' }): Promise<PermissionState>
+}
+
+interface Window {
+  showDirectoryPicker(options?: { mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>
+}

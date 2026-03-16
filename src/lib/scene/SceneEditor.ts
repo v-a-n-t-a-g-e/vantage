@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { sceneState, setSceneActions } from '@/lib/sceneState.svelte.ts'
-import type { SceneObject } from '@/lib/sceneState.svelte.ts'
-import { pushCommand } from '@/lib/history.svelte.ts'
+import type { SceneObject, SceneObjectSource } from '@/lib/sceneState.svelte.ts'
+import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
 import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'
@@ -44,22 +44,15 @@ export class SceneEditor {
     // Default scene content
     this.scene.add(new DefaultEnvironment())
 
-    const box = new THREE.Mesh(
-      new THREE.BoxGeometry(10, 10, 10),
-      new THREE.MeshStandardMaterial({ color: 0x888888 })
-    )
-    box.name = 'Box'
-    this.scene.add(box)
-
-    sceneState.objects = [{ name: box.name, object: box, visible: box.visible }]
+    this.addDefaultBox()
 
     // Register actions
     setSceneActions({
-      addObject: (name, obj) => {
-        const item = this.doAdd(name, obj)
+      addObject: (name, obj, source) => {
+        const item = this.doAdd(name, obj, source)
         pushCommand({
           undo: () => this.doRemove(item),
-          redo: () => this.doAdd(item.name, item.object),
+          redo: () => this.doAdd(item.name, item.object, item.source),
         })
       },
       removeObject: (item) => {
@@ -67,7 +60,7 @@ export class SceneEditor {
         this.doRemove(item)
         pushCommand({
           undo: () => {
-            this.doAdd(item.name, item.object)
+            this.doAdd(item.name, item.object, item.source)
             if (wasSelected) sceneState.selected = sceneState.objects[sceneState.objects.length - 1]
           },
           redo: () => this.doRemove(item),
@@ -75,6 +68,19 @@ export class SceneEditor {
       },
       focusObject: (item) => {
         this.rig.focusObject(item.object)
+      },
+      clearScene: () => {
+        for (const item of [...sceneState.objects]) {
+          this.scene.remove(item.object)
+        }
+        this.gizmo.detach()
+        sceneState.objects = []
+        sceneState.selected = null
+        sceneState.hovered = null
+        clearHistory()
+      },
+      addObjectSilent: (name, obj, source) => {
+        return this.doAdd(name, obj, source)
       },
     })
 
@@ -156,7 +162,23 @@ export class SceneEditor {
     this.animate()
   }
 
-  private doAdd(name: string, obj: THREE.Object3D): SceneObject {
+  private addDefaultBox() {
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(10, 10, 10),
+      new THREE.MeshStandardMaterial({ color: 0x888888 })
+    )
+    box.name = 'Box'
+    this.scene.add(box)
+    sceneState.objects = [{
+      id: crypto.randomUUID(),
+      name: box.name,
+      object: box,
+      visible: box.visible,
+      source: { kind: 'primitive', geometryType: 'box' },
+    }]
+  }
+
+  private doAdd(name: string, obj: THREE.Object3D, source: SceneObjectSource): SceneObject {
     const existing = sceneState.objects.map((o) => o.name)
     let uniqueName = name
     let i = 1
@@ -165,7 +187,13 @@ export class SceneEditor {
     }
     obj.name = uniqueName
     this.scene.add(obj)
-    const item: SceneObject = { name: uniqueName, object: obj, visible: true }
+    const item: SceneObject = {
+      id: crypto.randomUUID(),
+      name: uniqueName,
+      object: obj,
+      visible: true,
+      source,
+    }
     sceneState.objects = [...sceneState.objects, item]
     return item
   }
@@ -187,13 +215,26 @@ export class SceneEditor {
     if (!files) return
     for (const file of files) {
       if (!/\.(gltf|glb)$/i.test(file.name)) continue
-      const group = await loadGLTF(file)
+      const { group, blob } = await loadGLTF(file)
       const name = file.name.replace(/\.(gltf|glb)$/i, '')
-      const item = this.doAdd(name, group)
+      const source: SceneObjectSource = {
+        kind: 'imported',
+        relativePath: `geometry/${file.name}`,
+        originalBlob: blob,
+      }
+      const item = this.doAdd(name, group, source)
       pushCommand({
         undo: () => this.doRemove(item),
-        redo: () => this.doAdd(item.name, item.object),
+        redo: () => this.doAdd(item.name, item.object, item.source),
       })
+    }
+  }
+
+  getCameraState() {
+    return {
+      position: this.camera.position,
+      target: this.rig.target,
+      fov: this.camera.fov,
     }
   }
 
