@@ -30,7 +30,12 @@ export class SceneEditor {
 
     // Scene & camera
     this.scene = new THREE.Scene()
-    this.camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 100000)
+    this.camera = new THREE.PerspectiveCamera(
+      60,
+      canvas.clientWidth / canvas.clientHeight,
+      0.1,
+      100000
+    )
     this.camera.position.set(18, 14, 18)
     this.camera.lookAt(0, 0, 0)
 
@@ -104,14 +109,16 @@ export class SceneEditor {
       }
       const hits = raycaster.intersectObjects(targets, false)
       if (hits.length === 0) return null
-      return sceneState.objects.find((item) => {
-        let node: THREE.Object3D | null = hits[0].object
-        while (node) {
-          if (node === item.object) return true
-          node = node.parent
-        }
-        return false
-      }) ?? null
+      return (
+        sceneState.objects.find((item) => {
+          let node: THREE.Object3D | null = hits[0].object
+          while (node) {
+            if (node === item.object) return true
+            node = node.parent
+          }
+          return false
+        }) ?? null
+      )
     }
 
     canvas.addEventListener('pointerdown', (e) => {
@@ -125,23 +132,14 @@ export class SceneEditor {
         const dx = e.clientX - pointerDownPos.x
         const dy = e.clientY - pointerDownPos.y
         if (Math.hypot(dx, dy) > 5) isDragging = true
-        sceneState.hovered = null
         return
       }
-      if (this.gizmo.axis !== null) return
-      const hit = pick(e.clientX, e.clientY)
-      sceneState.hovered = hit === sceneState.selected ? null : hit
-    })
-
-    canvas.addEventListener('pointerleave', () => {
-      sceneState.hovered = null
     })
 
     canvas.addEventListener('pointerup', (e) => {
       if (isDragging) return
       if (this.gizmo.axis !== null) return
       sceneState.selected = pick(e.clientX, e.clientY)
-      sceneState.hovered = null
     })
 
     // Drag-and-drop file import
@@ -169,13 +167,15 @@ export class SceneEditor {
     )
     box.name = 'Box'
     this.scene.add(box)
-    sceneState.objects = [{
-      id: crypto.randomUUID(),
-      name: box.name,
-      object: box,
-      visible: box.visible,
-      source: { kind: 'primitive', geometryType: 'box' },
-    }]
+    sceneState.objects = [
+      {
+        id: crypto.randomUUID(),
+        name: box.name,
+        object: box,
+        visible: box.visible,
+        source: { kind: 'primitive', geometryType: 'box' },
+      },
+    ]
   }
 
   private doAdd(name: string, obj: THREE.Object3D, source: SceneObjectSource): SceneObject {
