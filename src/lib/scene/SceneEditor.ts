@@ -78,6 +78,66 @@ export class SceneEditor {
       },
     })
 
+    // Click-to-select + hover in viewport
+    const raycaster = new THREE.Raycaster()
+    let pointerDownPos = { x: 0, y: 0 }
+    let isDragging = false
+
+    const pick = (clientX: number, clientY: number): SceneObject | null => {
+      const rect = canvas.getBoundingClientRect()
+      raycaster.setFromCamera(
+        new THREE.Vector2(
+          ((clientX - rect.left) / rect.width) * 2 - 1,
+          -((clientY - rect.top) / rect.height) * 2 + 1
+        ),
+        this.camera
+      )
+      const targets: THREE.Object3D[] = []
+      for (const item of sceneState.objects) {
+        item.object.traverse((child) => targets.push(child))
+      }
+      const hits = raycaster.intersectObjects(targets, false)
+      if (hits.length === 0) return null
+      return sceneState.objects.find((item) => {
+        let node: THREE.Object3D | null = hits[0].object
+        while (node) {
+          if (node === item.object) return true
+          node = node.parent
+        }
+        return false
+      }) ?? null
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      pointerDownPos = { x: e.clientX, y: e.clientY }
+      isDragging = false
+    })
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (e.buttons > 0) {
+        // Mouse button held — user is orbiting/panning, clear and skip hover
+        const dx = e.clientX - pointerDownPos.x
+        const dy = e.clientY - pointerDownPos.y
+        if (Math.hypot(dx, dy) > 5) isDragging = true
+        sceneState.hovered = null
+        return
+      }
+      if (this.gizmo.axis !== null) return
+      const hit = pick(e.clientX, e.clientY)
+      sceneState.hovered = hit === sceneState.selected ? null : hit
+    })
+
+    canvas.addEventListener('pointerleave', () => {
+      sceneState.hovered = null
+    })
+
+    canvas.addEventListener('pointerup', (e) => {
+      if (isDragging) return
+      if (this.gizmo.axis !== null) return
+      sceneState.selected = pick(e.clientX, e.clientY)
+      sceneState.hovered = null
+    })
+
     // Drag-and-drop file import
     canvas.addEventListener('dragover', (e) => e.preventDefault())
     canvas.addEventListener('drop', (e) => {
