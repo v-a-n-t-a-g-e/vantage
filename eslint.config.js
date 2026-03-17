@@ -17,6 +17,7 @@ export default [
     },
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'svelte/sort-attributes': ['error'],
     },
   },
   {
