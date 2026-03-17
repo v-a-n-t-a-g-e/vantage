@@ -4,8 +4,9 @@
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import { loadGLTF } from '@/lib/gltfLoader.ts'
   import { VantageProjection, loadTexture } from 'vantage-renderer'
+  import Add from '@/assets/icons/Add.svg'
 
-  let fileInput: HTMLInputElement
+  let assetInput: HTMLInputElement
   let imageInput: HTMLInputElement
 
   async function handleFiles(files: FileList | null | undefined) {
@@ -20,7 +21,7 @@
         originalBlob: blob,
       })
     }
-    if (fileInput) fileInput.value = ''
+    if (assetInput) assetInput.value = ''
   }
 
   async function handleImages(files: FileList | null | undefined) {
@@ -42,72 +43,97 @@
   }
 </script>
 
-<aside
-  class="ui-container col-start-1 row-span-2 flex-1 min-h-0 overflow-auto pointer-events-auto flex flex-col"
-  onclick={(e) => {
-    if (e.target === e.currentTarget) {
-      sceneState.selected = null
-      sceneState.selectedProjection = null
-    }
-  }}
->
-  <!-- Assets section -->
-  <div class="px-3 flex items-center justify-between h-10 border-b">
-    <span class="tracking-wider">Assets</span>
-    <button
-      class="ui-button px-2 h-7 text-sm"
-      onclick={() => fileInput.click()}
-      title="Import GLTF/GLB">Import</button
-    >
-  </div>
-  <input
-    type="file"
-    accept=".gltf,.glb"
-    multiple
-    bind:this={fileInput}
-    onchange={(e) => handleFiles((e.target as HTMLInputElement).files)}
-    class="hidden"
-  />
-  {#each sceneState.objects as item (item.id)}
-    <NodeListItem
-      {item}
-      ontoggle={(i) => {
-        i.object.visible = !i.object.visible
-        i.visible = i.object.visible
-      }}
+<aside class="col-start-1 row-span-2 flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+  <!-- Projections -->
+  <section class="ui-container">
+    <div class="mt-auto flex h-10 items-center justify-between border-b px-3">
+      <span>Projections</span>
+      <button
+        class="-mr-3 ui-button h-full px-3"
+        onclick={() => imageInput.click()}
+        title="Import image"
+      >
+        <Add />
+      </button>
+    </div>
+    <input
+      bind:this={imageInput}
+      class="hidden"
+      accept=".jpg,.jpeg,.png,.webp"
+      multiple
+      onchange={(e) => handleImages((e.target as HTMLInputElement).files)}
+      type="file"
     />
-  {/each}
-
-  <!-- Projections section -->
-  <div class="px-3 flex items-center justify-between h-10 border-b border-t mt-auto">
-    <span class="tracking-wider">Projections</span>
-    <button
-      class="ui-button px-2 h-7 text-sm"
-      onclick={() => imageInput.click()}
-      title="Import image">Import</button
-    >
-  </div>
-  <input
-    type="file"
-    accept=".jpg,.jpeg,.png,.webp"
-    multiple
-    bind:this={imageInput}
-    onchange={(e) => handleImages((e.target as HTMLInputElement).files)}
-    class="hidden"
-  />
-  {#each sceneState.projections as item (item.id)}
-    <ProjectionListItem
-      {item}
-      ontoggle={(i) => {
-        i.visible = !i.visible
-        for (const obj of sceneState.objects) {
-          if (i.visible) {
-            i.projection.project(obj.object)
-          } else {
-            i.projection.unproject(obj.object)
+    {#each sceneState.projections as item (item.id)}
+      <ProjectionListItem
+        {item}
+        ontoggle={(i) => {
+          i.visible = !i.visible
+          for (const obj of sceneState.objects) {
+            if (i.visible) {
+              i.projection.project(obj.object)
+            } else {
+              i.projection.unproject(obj.object)
+            }
           }
-        }
-      }}
+        }}
+      />
+    {:else}
+      <div
+        class="h-10 px-3 flex justify-center items-center text-gray-400"
+        onclick={() => imageInput.click()}
+        role="presentation"
+      >
+        import an image
+      </div>
+    {/each}
+  </section>
+
+  <!-- Assets -->
+  <section
+    class="ui-container"
+    onclick={(e) => {
+      if (e.target === e.currentTarget) {
+        sceneState.selected = null
+        sceneState.selectedProjection = null
+      }
+    }}
+    role="presentation"
+  >
+    <div class="flex h-10 items-center justify-between border-b px-3">
+      <span>Assets</span>
+      <button
+        class="-mr-3 ui-button h-full px-3"
+        onclick={() => assetInput.click()}
+        title="Import GLTF/GLB"
+      >
+        <Add />
+      </button>
+    </div>
+    <input
+      bind:this={assetInput}
+      class="hidden"
+      accept=".gltf,.glb"
+      multiple
+      onchange={(e) => handleFiles((e.target as HTMLInputElement).files)}
+      type="file"
     />
-  {/each}
+    {#each sceneState.objects as item (item.id)}
+      <NodeListItem
+        {item}
+        ontoggle={(i) => {
+          i.object.visible = !i.object.visible
+          i.visible = i.object.visible
+        }}
+      />
+    {:else}
+      <div
+        class="h-10 px-3 flex justify-center items-center text-gray-400"
+        onclick={() => assetInput.click()}
+        role="presentation"
+      >
+        import a 3D model
+      </div>
+    {/each}
+  </section>
 </aside>
