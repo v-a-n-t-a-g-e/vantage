@@ -21,53 +21,53 @@
   })
 </script>
 
-<aside class="ui-container row-span-2 flex-1 min-h-0 overflow-auto pointer-events-auto">
+<aside class="ui-container pointer-events-auto row-span-2 min-h-0 flex-1 overflow-auto">
   {#if sceneState.selected}
-    <div class="px-3 flex items-center tracking-wider h-10 border-b">Transform</div>
+    <div class="flex h-10 items-center border-b px-3 tracking-wider">Transform</div>
     <Vec3Controls
-      title="Position"
+      labels={['x', 'y', 'elevation']}
       object={sceneState.selected?.object}
       prop="position"
-      labels={['x', 'y', 'elevation']}
       step={0.1}
+      title="Position"
     />
     <Vec3Controls
-      title="Rotation"
+      fromDisplay={(v) => v * (Math.PI / 180)}
+      labels={['pitch', 'yaw', 'roll']}
       object={sceneState.selected?.object}
       prop="rotation"
-      labels={['pitch', 'yaw', 'roll']}
       step={0.1}
+      title="Rotation"
       toDisplay={(v) => v * (180 / Math.PI)}
-      fromDisplay={(v) => v * (Math.PI / 180)}
     />
     <Vec3Controls
-      title="Scale"
+      labels={['x', 'y', 'z']}
       object={sceneState.selected?.object}
       prop="scale"
-      labels={['x', 'y', 'z']}
       step={0.01}
+      title="Scale"
     />
     <button
       class="ui-button w-full border-t text-red-400"
       onclick={() => sceneActions.value?.removeObject(sceneState.selected!)}>Delete</button
     >
   {:else if sceneState.selectedProjection}
-    <div class="px-3 flex items-center tracking-wider h-10 border-b">Projection</div>
+    <div class="flex h-10 items-center border-b px-3 tracking-wider">Projection</div>
     <Vec3Controls
-      title="Position"
+      labels={['x', 'y', 'elevation']}
       object={sceneState.selectedProjection?.projection}
       prop="position"
-      labels={['x', 'y', 'elevation']}
       step={0.1}
+      title="Position"
     />
     <Vec3Controls
-      title="Rotation"
+      fromDisplay={(v) => v * (Math.PI / 180)}
+      labels={['pitch', 'yaw', 'roll']}
       object={sceneState.selectedProjection?.projection}
       prop="rotation"
-      labels={['pitch', 'yaw', 'roll']}
       step={0.1}
+      title="Rotation"
       toDisplay={(v) => v * (180 / Math.PI)}
-      fromDisplay={(v) => v * (Math.PI / 180)}
     />
 
     <!-- FOV -->
@@ -77,11 +77,6 @@
         <div class="flex-1 px-3 py-1.5">
           <DragInput
             label="fov"
-            value={fovValue}
-            step={0.5}
-            onstart={() => {
-              fovStart = sceneState.selectedProjection!.projection.fov
-            }}
             onchange={(v) => {
               fovValue = v
               const proj = sceneState.selectedProjection?.projection
@@ -109,16 +104,16 @@
                   },
                 })
             }}
+            onstart={() => {
+              fovStart = sceneState.selectedProjection!.projection.fov
+            }}
+            step={0.5}
+            value={fovValue}
           />
         </div>
         <div class="flex-1 px-3 py-1.5">
           <DragInput
             label="near"
-            value={nearValue}
-            step={0.1}
-            onstart={() => {
-              nearStart = sceneState.selectedProjection!.projection.near
-            }}
             onchange={(v) => {
               nearValue = v
               const proj = sceneState.selectedProjection?.projection
@@ -146,16 +141,16 @@
                   },
                 })
             }}
+            onstart={() => {
+              nearStart = sceneState.selectedProjection!.projection.near
+            }}
+            step={0.1}
+            value={nearValue}
           />
         </div>
         <div class="flex-1 px-3 py-1.5">
           <DragInput
             label="far"
-            value={farValue}
-            step={1}
-            onstart={() => {
-              farStart = sceneState.selectedProjection!.projection.far
-            }}
             onchange={(v) => {
               farValue = v
               const proj = sceneState.selectedProjection?.projection
@@ -183,6 +178,11 @@
                   },
                 })
             }}
+            onstart={() => {
+              farStart = sceneState.selectedProjection!.projection.far
+            }}
+            step={1}
+            value={farValue}
           />
         </div>
       </div>

@@ -24,47 +24,47 @@
   }}
 />
 
-<nav class="ui-container flex justify-self-start items-center">
+<nav class="ui-container flex items-center justify-self-start">
   <div class="ui-button"><Logo /></div>
   <div
-    class="relative cursor-pointer select-none ui-button"
-    role="button"
-    tabindex="0"
+    class="relative ui-button cursor-pointer select-none"
     onclick={(e) => {
       e.stopPropagation()
       fileOpen = !fileOpen
     }}
     onkeydown={(e) => e.key === 'Enter' && (fileOpen = !fileOpen)}
+    role="button"
+    tabindex="0"
   >
     File
     {#if projectState.dirty}
-      <span class="text-brand ml-0.5">*</span>
+      <span class="ml-0.5 text-brand">*</span>
     {/if}
     {#if fileOpen}
-      <div class="absolute ui-container top-full left-0 min-w-40 z-10 flex flex-col">
+      <div class="ui-container absolute top-full left-0 z-10 flex min-w-40 flex-col">
         <button
-          class="ui-button cursor-pointer flex justify-between items-center text-left"
+          class="ui-button flex cursor-pointer items-center justify-between text-left"
           onclick={handleNew}
         >
           <span>New</span>
-          <span class="opacity-40 text-xs ml-4">Cmd+N</span>
+          <span class="ml-4 text-xs opacity-40">Cmd+N</span>
         </button>
         <button
-          class="ui-button cursor-pointer flex justify-between items-center text-left"
+          class="ui-button flex cursor-pointer items-center justify-between text-left"
           onclick={handleOpen}
         >
           <span>Open</span>
-          <span class="opacity-40 text-xs ml-4">Cmd+O</span>
+          <span class="ml-4 text-xs opacity-40">Cmd+O</span>
         </button>
         <button
-          class="ui-button cursor-pointer flex justify-between items-center text-left"
+          class="ui-button flex cursor-pointer items-center justify-between text-left"
           onclick={handleSave}
         >
           <span>Save</span>
-          <span class="opacity-40 text-xs ml-4">Cmd+S</span>
+          <span class="ml-4 text-xs opacity-40">Cmd+S</span>
         </button>
       </div>
     {/if}
   </div>
-  <div class="cursor-pointer select-none ui-button">View</div>
+  <div class="ui-button cursor-pointer select-none">View</div>
 </nav>
