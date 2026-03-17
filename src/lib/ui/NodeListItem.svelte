@@ -1,11 +1,11 @@
 <script lang="ts">
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
-  import type { SceneObject } from '@/lib/sceneState.svelte.ts'
+  import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
 
   interface Props {
-    item: SceneObject
-    ontoggle: (_item: SceneObject) => void
+    item: SceneObject | ProjectionItem
+    ontoggle: (_item: SceneObject | ProjectionItem) => void
   }
 
   let { item, ontoggle }: Props = $props()
@@ -18,37 +18,37 @@
   function select() {
     if (sceneState.aimMode) sceneActions.value?.exitAimMode()
     sceneState.selected = item
-    sceneState.selectedProjection = null
   }
 </script>
 
 <div
-  class="group flex items-center h-10 gap-2 px-3 cursor-pointer select-none"
+  class="group flex h-10 cursor-pointer items-center gap-2 px-3 select-none"
   class:bg-brand={sceneState.selected === item}
-  role="button"
-  tabindex="0"
   onclick={select}
   ondblclick={() => {
-    sceneState.selected = item
-    sceneActions.value?.focusObject(item)
+    select()
+    if (item.kind === 'object') sceneActions.value?.focusObject(item)
+    else sceneActions.value?.focusProjection(item)
   }}
   onkeydown={(e) => e.key === 'Enter' && select()}
   onmouseenter={() => {
-    sceneState.hovered = item
+    if (item.kind === 'object') sceneState.hovered = item
   }}
   onmouseleave={() => {
-    sceneState.hovered = null
+    if (item.kind === 'object') sceneState.hovered = null
   }}
+  role="button"
+  tabindex="0"
 >
-  <span class:opacity-40={!item.visible}>{item.name}</span>
+  <div class="overflow-hidden text-ellipsis" class:opacity-40={!item.visible}>{item.name}</div>
 
   <button
-    class="ml-auto -mx-1.5 px-1.5 h-10
+    class="-mx-1.5 ml-auto h-10 px-1.5
            opacity-0 group-hover:opacity-40 hover:opacity-100!"
     class:!opacity-40={!item.visible}
+    aria-label="Toggle visibility"
     onclick={toggleVisibility}
     tabindex="-1"
-    aria-label="Toggle visibility"
   >
     <IconHide />
   </button>

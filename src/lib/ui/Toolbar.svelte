@@ -37,7 +37,7 @@
     {/each}
   {/if}
 
-  {#if sceneState.selectedProjection}
+  {#if sceneState.selected?.kind === 'projection'}
     <button
       class="ui-button cursor-pointer"
       class:!bg-green={sceneState.aimMode}

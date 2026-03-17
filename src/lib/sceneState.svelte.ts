@@ -8,6 +8,7 @@ export type SceneObjectSource =
   | { kind: 'imported'; relativePath: string; originalBlob?: Blob }
 
 export type SceneObject = {
+  kind: 'object'
   id: string
   name: string
   object: Object3D
@@ -16,6 +17,7 @@ export type SceneObject = {
 }
 
 export type ProjectionItem = {
+  kind: 'projection'
   id: string
   name: string
   projection: VantageProjection
@@ -41,8 +43,7 @@ export type SceneActions = {
 type SceneState = {
   objects: SceneObject[]
   projections: ProjectionItem[]
-  selected: SceneObject | null
-  selectedProjection: ProjectionItem | null
+  selected: SceneObject | ProjectionItem | null
   hovered: SceneObject | null
   transformMode: TransformMode
   transformRevision: number
@@ -53,7 +54,6 @@ export const sceneState: SceneState = $state({
   objects: [],
   projections: [],
   selected: null,
-  selectedProjection: null,
   hovered: null,
   transformMode: 'translate',
   transformRevision: 0,

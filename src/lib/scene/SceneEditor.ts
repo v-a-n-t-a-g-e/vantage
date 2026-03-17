@@ -48,8 +48,7 @@ export class SceneEditor {
   private gizmo: TransformGizmo
   private hoverHelper: THREE.BoxHelper | null = null
   private projectionHelper: THREE.CameraHelper | null = null
-  private lastSelected: SceneObject | null = null
-  private lastSelectedProjection: ProjectionItem | null = null
+  private lastSelected: SceneObject | ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
   private lastMode = sceneState.transformMode
   private animId = 0
@@ -106,7 +105,7 @@ export class SceneEditor {
         })
       },
       removeObject: (item) => {
-        const wasSelected = sceneState.selected?.object === item.object
+        const wasSelected = sceneState.selected?.kind === 'object' && sceneState.selected.object === item.object
         this.doRemove(item)
         pushCommand({
           undo: () => {
@@ -133,7 +132,6 @@ export class SceneEditor {
         sceneState.objects = []
         sceneState.projections = []
         sceneState.selected = null
-        sceneState.selectedProjection = null
         sceneState.hovered = null
         clearHistory()
       },
@@ -149,14 +147,13 @@ export class SceneEditor {
         })
       },
       removeProjection: (item) => {
-        const wasSelected = sceneState.selectedProjection?.projection === item.projection
+        const wasSelected = sceneState.selected?.kind === 'projection' && sceneState.selected.projection === item.projection
         this.doRemoveProjection(item)
         pushCommand({
           undo: () => {
             this.doAddProjection(item.name, item.projection, item.imagePath, item.imageBlob)
             if (wasSelected)
-              sceneState.selectedProjection =
-                sceneState.projections[sceneState.projections.length - 1]
+              sceneState.selected = sceneState.projections[sceneState.projections.length - 1]
           },
           redo: () => this.doRemoveProjection(item),
         })
@@ -223,7 +220,6 @@ export class SceneEditor {
       if (isDragging) return
       if (this.gizmo.axis !== null) return
       sceneState.selected = pick(e.clientX, e.clientY)
-      sceneState.selectedProjection = null
     })
 
     // Aim mode mouse handlers
@@ -255,7 +251,7 @@ export class SceneEditor {
   // ── Aim mode ──
 
   private enterAimMode() {
-    const proj = sceneState.selectedProjection
+    const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
     if (!proj || sceneState.aimMode) return
 
     // Snapshot for undo
@@ -278,7 +274,7 @@ export class SceneEditor {
 
   private exitAimMode() {
     if (!sceneState.aimMode) return
-    const proj = sceneState.selectedProjection
+    const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
 
     sceneState.aimMode = false
     this.aimHeldKeys.clear()
@@ -335,7 +331,7 @@ export class SceneEditor {
 
   private updateAimMovement(deltaMs: number) {
     if (this.aimHeldKeys.size === 0) return
-    const proj = sceneState.selectedProjection
+    const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
     if (!proj) return
 
     this.camera.getWorldDirection(_forward)
@@ -371,7 +367,7 @@ export class SceneEditor {
 
   private onAimMouseMove = (event: MouseEvent) => {
     if (!sceneState.aimMode || !this.aimIsDragging) return
-    const proj = sceneState.selectedProjection
+    const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
     if (!proj) return
 
     const dx = event.clientX - this.aimDragLast.x
@@ -417,6 +413,7 @@ export class SceneEditor {
     this.scene.add(box)
     sceneState.objects = [
       {
+        kind: 'object',
         id: crypto.randomUUID(),
         name: box.name,
         object: box,
@@ -436,6 +433,7 @@ export class SceneEditor {
     obj.name = uniqueName
     this.scene.add(obj)
     const item: SceneObject = {
+      kind: 'object',
       id: crypto.randomUUID(),
       name: uniqueName,
       object: obj,
@@ -464,7 +462,7 @@ export class SceneEditor {
     }
 
     this.scene.remove(obj)
-    if (sceneState.selected?.object === obj) {
+    if (sceneState.selected?.kind === 'object' && sceneState.selected.object === obj) {
       this.gizmo.detach()
       sceneState.selected = null
     }
@@ -501,6 +499,7 @@ export class SceneEditor {
     }
 
     const item: ProjectionItem = {
+      kind: 'projection',
       id: crypto.randomUUID(),
       name: uniqueName,
       projection,
@@ -513,7 +512,8 @@ export class SceneEditor {
   }
 
   private doRemoveProjection(item: ProjectionItem) {
-    if (sceneState.aimMode && sceneState.selectedProjection?.projection === item.projection) {
+    const isSelected = sceneState.selected?.kind === 'projection' && sceneState.selected.projection === item.projection
+    if (sceneState.aimMode && isSelected) {
       this.exitAimMode()
     }
 
@@ -524,9 +524,9 @@ export class SceneEditor {
 
     this.scene.remove(item.projection)
 
-    if (sceneState.selectedProjection?.projection === item.projection) {
+    if (isSelected) {
       this.gizmo.detach()
-      sceneState.selectedProjection = null
+      sceneState.selected = null
     }
 
     item.projection.dispose()
@@ -589,30 +589,24 @@ export class SceneEditor {
       this.rig.tick()
     }
 
-    // Object selection changes
+    // Selection changes
     if (sceneState.selected !== this.lastSelected) {
+      // Clean up old projection helper if previous selection was a projection
+      if (this.lastSelected?.kind === 'projection') {
+        if (this.projectionHelper) {
+          this.scene.remove(this.projectionHelper)
+          this.projectionHelper = null
+        }
+      }
+
       this.lastSelected = sceneState.selected
-      if (this.lastSelected) {
+      if (this.lastSelected?.kind === 'object') {
         this.gizmo.attach(this.lastSelected.object)
-      } else if (!sceneState.selectedProjection) {
-        this.gizmo.detach()
-      }
-    }
-
-    // Projection selection changes
-    if (sceneState.selectedProjection !== this.lastSelectedProjection) {
-      // Clean up old projection helper
-      if (this.projectionHelper) {
-        this.scene.remove(this.projectionHelper)
-        this.projectionHelper = null
-      }
-
-      this.lastSelectedProjection = sceneState.selectedProjection
-      if (this.lastSelectedProjection) {
-        if (!sceneState.aimMode) this.gizmo.attach(this.lastSelectedProjection.projection)
-        this.projectionHelper = new THREE.CameraHelper(this.lastSelectedProjection.projection)
+      } else if (this.lastSelected?.kind === 'projection') {
+        if (!sceneState.aimMode) this.gizmo.attach(this.lastSelected.projection)
+        this.projectionHelper = new THREE.CameraHelper(this.lastSelected.projection)
         this.scene.add(this.projectionHelper)
-      } else if (!sceneState.selected) {
+      } else {
         this.gizmo.detach()
       }
     }

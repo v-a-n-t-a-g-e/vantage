@@ -12,7 +12,7 @@
   <NodeList />
   <MenuBar />
 
-  {#if sceneState.selected || sceneState.selectedProjection}
+  {#if sceneState.selected}
     <Toolbar />
     <Inspector />
   {/if}

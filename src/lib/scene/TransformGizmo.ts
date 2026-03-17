@@ -45,7 +45,7 @@ export class TransformGizmo extends TransformControls {
 
     this.addEventListener('dragging-changed', (e) => {
       orbit.enabled = !(e as any).value
-      const obj = sceneState.selected?.object
+      const obj = sceneState.selected?.kind === 'object' ? sceneState.selected.object : undefined
       if ((e as any).value) {
         if (obj)
           dragSnapshot = {

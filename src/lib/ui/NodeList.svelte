@@ -1,6 +1,5 @@
 <script lang="ts">
   import NodeListItem from '@/lib/ui/NodeListItem.svelte'
-  import ProjectionListItem from '@/lib/ui/ProjectionListItem.svelte'
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import { loadGLTF } from '@/lib/gltfLoader.ts'
   import { VantageProjection, loadTexture } from 'vantage-renderer'
@@ -65,15 +64,17 @@
       type="file"
     />
     {#each sceneState.projections as item (item.id)}
-      <ProjectionListItem
+      <NodeListItem
         {item}
         ontoggle={(i) => {
-          i.visible = !i.visible
-          for (const obj of sceneState.objects) {
-            if (i.visible) {
-              i.projection.project(obj.object)
-            } else {
-              i.projection.unproject(obj.object)
+          if (i.kind === 'projection') {
+            i.visible = !i.visible
+            for (const obj of sceneState.objects) {
+              if (i.visible) {
+                i.projection.project(obj.object)
+              } else {
+                i.projection.unproject(obj.object)
+              }
             }
           }
         }}
@@ -95,7 +96,6 @@
     onclick={(e) => {
       if (e.target === e.currentTarget) {
         sceneState.selected = null
-        sceneState.selectedProjection = null
       }
     }}
     role="presentation"
@@ -122,8 +122,10 @@
       <NodeListItem
         {item}
         ontoggle={(i) => {
-          i.object.visible = !i.object.visible
-          i.visible = i.object.visible
+          if (i.kind === 'object') {
+            i.object.visible = !i.object.visible
+            i.visible = i.object.visible
+          }
         }}
       />
     {:else}
