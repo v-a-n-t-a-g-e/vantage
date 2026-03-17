@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { TransformMode } from '@/lib/sceneState.svelte.ts'
   import type { Component } from 'svelte'
 
   import IconTranslate from '@/assets/icons/Translate.svg'
   import IconRotate from '@/assets/icons/Rotate.svg'
   import IconScale from '@/assets/icons/Scale.svg'
+  import IconAim from '@/assets/icons/Aim.svg'
 
   type TransformModeItem = { mode: TransformMode; icon: Component }
 
@@ -17,20 +18,40 @@
 </script>
 
 <div class="ui-container col-start-3 row-start-1 flex justify-self-end">
-  {#each modes as { mode, icon } (mode)}
-    <label
+  {#if !sceneState.aimMode}
+    {#each modes as { mode, icon } (mode)}
+      <label
+        class="ui-button cursor-pointer"
+        class:!bg-green={sceneState.transformMode === mode}
+        aria-label={mode}
+      >
+        <input
+          type="radio"
+          name="transform-mode"
+          value={mode}
+          bind:group={sceneState.transformMode}
+          class="sr-only"
+        />
+        <svelte:component this={icon} />
+      </label>
+    {/each}
+  {/if}
+
+  {#if sceneState.selectedProjection}
+    <button
       class="ui-button cursor-pointer"
-      class:!bg-green={sceneState.transformMode === mode}
-      aria-label={mode}
+      class:!bg-green={sceneState.aimMode}
+      aria-label="Aim mode"
+      title={sceneState.aimMode ? 'Exit aim mode (Esc)' : 'Enter aim mode'}
+      onclick={() => {
+        if (sceneState.aimMode) {
+          sceneActions.value?.exitAimMode()
+        } else {
+          sceneActions.value?.enterAimMode()
+        }
+      }}
     >
-      <input
-        type="radio"
-        name="transform-mode"
-        value={mode}
-        bind:group={sceneState.transformMode}
-        class="sr-only"
-      />
-      <svelte:component this={icon} />
-    </label>
-  {/each}
+      <IconAim />
+    </button>
+  {/if}
 </div>

@@ -16,6 +16,7 @@
   }
 
   function select() {
+    if (sceneState.aimMode) sceneActions.value?.exitAimMode()
     sceneState.selectedProjection = item
     sceneState.selected = null
   }
@@ -27,6 +28,10 @@
   role="button"
   tabindex="0"
   onclick={select}
+  ondblclick={() => {
+    select()
+    sceneActions.value?.focusProjection(item)
+  }}
   onkeydown={(e) => e.key === 'Enter' && select()}
 >
   <span class:opacity-40={!item.visible}>{item.name}</span>

@@ -16,6 +16,7 @@
   }
 
   function select() {
+    if (sceneState.aimMode) sceneActions.value?.exitAimMode()
     sceneState.selected = item
     sceneState.selectedProjection = null
   }

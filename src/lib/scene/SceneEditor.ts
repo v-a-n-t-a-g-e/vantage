@@ -13,8 +13,8 @@ import { VantageProjection, loadTexture } from 'vantage-renderer'
  * VantageProjection._applyMaterial wraps mesh.material into an array [mat]
  * and adds a projection group at materialIndex = material.length.
  * This breaks meshes whose groups reference materialIndex > 0 while using a
- * single material (e.g. BoxGeometry has groups with materialIndex 0‑5).
- * After wrapping, only index 0 is valid — indices 1‑5 become undefined.
+ * single material (e.g. BoxGeometry has groups with materialIndex 0-5).
+ * After wrapping, only index 0 is valid — indices 1-5 become undefined.
  *
  * Fix: before projecting, collapse all single-material groups to materialIndex 0.
  */
@@ -34,6 +34,12 @@ function normalizeGroupsForProjection(object: THREE.Object3D) {
   })
 }
 
+// Reused vectors for aim mode
+const _forward = new THREE.Vector3()
+const _right = new THREE.Vector3()
+const _worldUp = new THREE.Vector3(0, 1, 0)
+const _euler = new THREE.Euler(0, 0, 0, 'YXZ')
+
 export class SceneEditor {
   private renderer: THREE.WebGLRenderer
   private scene: THREE.Scene
@@ -48,8 +54,19 @@ export class SceneEditor {
   private lastMode = sceneState.transformMode
   private animId = 0
   private ro: ResizeObserver
+  private canvas: HTMLCanvasElement
+  private clock = new THREE.Clock()
+
+  // Aim mode state
+  private aimHeldKeys = new Set<string>()
+  private aimIsDragging = false
+  private aimDragLast = { x: 0, y: 0 }
+  private aimPositionBefore: THREE.Vector3 | null = null
+  private aimRotationBefore: THREE.Euler | null = null
 
   constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas
+
     // Renderer
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
     this.renderer.setPixelRatio(window.devicePixelRatio)
@@ -103,6 +120,7 @@ export class SceneEditor {
         this.rig.focusObject(item.object)
       },
       clearScene: () => {
+        if (sceneState.aimMode) this.exitAimMode()
         for (const item of [...sceneState.objects]) {
           this.scene.remove(item.object)
         }
@@ -146,6 +164,11 @@ export class SceneEditor {
       addProjectionSilent: (name, projection, imagePath) => {
         return this.doAddProjection(name, projection, imagePath)
       },
+      focusProjection: (item) => {
+        this.rig.flyToProjection(item.projection)
+      },
+      enterAimMode: () => this.enterAimMode(),
+      exitAimMode: () => this.exitAimMode(),
     })
 
     // Click-to-select + hover in viewport
@@ -196,11 +219,20 @@ export class SceneEditor {
     })
 
     canvas.addEventListener('pointerup', (e) => {
+      if (sceneState.aimMode) return
       if (isDragging) return
       if (this.gizmo.axis !== null) return
       sceneState.selected = pick(e.clientX, e.clientY)
       sceneState.selectedProjection = null
     })
+
+    // Aim mode mouse handlers
+    canvas.addEventListener('mousedown', this.onAimMouseDown)
+    canvas.addEventListener('mousemove', this.onAimMouseMove)
+    canvas.addEventListener('mouseup', this.onAimMouseUp)
+    canvas.addEventListener('mouseleave', this.onAimMouseUp)
+    document.addEventListener('keydown', this.onAimKeydown)
+    document.addEventListener('keyup', this.onAimKeyup)
 
     // Drag-and-drop file import
     canvas.addEventListener('dragover', (e) => e.preventDefault())
@@ -219,6 +251,162 @@ export class SceneEditor {
 
     this.animate()
   }
+
+  // ── Aim mode ──
+
+  private enterAimMode() {
+    const proj = sceneState.selectedProjection
+    if (!proj || sceneState.aimMode) return
+
+    // Snapshot for undo
+    this.aimPositionBefore = proj.projection.position.clone()
+    this.aimRotationBefore = proj.projection.rotation.clone()
+
+    // Sync orbit camera to projection viewpoint
+    this.camera.position.copy(proj.projection.getWorldPosition(new THREE.Vector3()))
+    proj.projection.getWorldDirection(_forward)
+    this.camera.quaternion.copy(proj.projection.quaternion)
+
+    // Disable orbit controls and gizmo
+    this.rig.enabled = false
+    this.gizmo.detach()
+
+    sceneState.aimMode = true
+    this.aimHeldKeys.clear()
+    this.aimIsDragging = false
+  }
+
+  private exitAimMode() {
+    if (!sceneState.aimMode) return
+    const proj = sceneState.selectedProjection
+
+    sceneState.aimMode = false
+    this.aimHeldKeys.clear()
+    this.aimIsDragging = false
+
+    // Re-enable orbit controls
+    this.rig.enabled = true
+
+    // Point orbit target in front of current camera position
+    this.camera.getWorldDirection(_forward)
+    this.rig.target.copy(this.camera.position).addScaledVector(_forward, 10)
+    // Force orbit controls to sync without damping snap
+    this.rig.enableDamping = false
+    this.rig.update()
+    this.rig.enableDamping = true
+
+    // Re-attach gizmo
+    if (proj) {
+      this.gizmo.attach(proj.projection)
+
+      // Push undo for the accumulated aim-mode transform change
+      if (this.aimPositionBefore && this.aimRotationBefore) {
+        const before = {
+          position: this.aimPositionBefore,
+          rotation: this.aimRotationBefore,
+        }
+        const after = {
+          position: proj.projection.position.clone(),
+          rotation: proj.projection.rotation.clone(),
+        }
+        const p = proj.projection
+        if (
+          !before.position.equals(after.position) ||
+          !before.rotation.equals(after.rotation)
+        ) {
+          pushCommand({
+            undo: () => {
+              p.position.copy(before.position)
+              p.rotation.copy(before.rotation)
+              sceneState.transformRevision++
+            },
+            redo: () => {
+              p.position.copy(after.position)
+              p.rotation.copy(after.rotation)
+              sceneState.transformRevision++
+            },
+          })
+        }
+      }
+    }
+    this.aimPositionBefore = null
+    this.aimRotationBefore = null
+  }
+
+  private updateAimMovement(deltaMs: number) {
+    if (this.aimHeldKeys.size === 0) return
+    const proj = sceneState.selectedProjection
+    if (!proj) return
+
+    this.camera.getWorldDirection(_forward)
+    _forward.y = 0
+    const len = _forward.length()
+    if (len < 0.001) return
+    _forward.divideScalar(len)
+    _right.crossVectors(_forward, _worldUp).normalize()
+
+    const speed = 0.03 * deltaMs
+    const pos = this.camera.position
+    let moved = false
+
+    if (this.aimHeldKeys.has('KeyW') || this.aimHeldKeys.has('ArrowUp')) { pos.addScaledVector(_forward, speed); moved = true }
+    if (this.aimHeldKeys.has('KeyS') || this.aimHeldKeys.has('ArrowDown')) { pos.addScaledVector(_forward, -speed); moved = true }
+    if (this.aimHeldKeys.has('KeyA') || this.aimHeldKeys.has('ArrowLeft')) { pos.addScaledVector(_right, -speed); moved = true }
+    if (this.aimHeldKeys.has('KeyD') || this.aimHeldKeys.has('ArrowRight')) { pos.addScaledVector(_right, speed); moved = true }
+    if (this.aimHeldKeys.has('KeyR')) { pos.y += speed; moved = true }
+    if (this.aimHeldKeys.has('KeyF')) { pos.y -= speed; moved = true }
+
+    if (moved) {
+      proj.projection.position.copy(pos)
+      proj.projection.updateMatrixWorld()
+      sceneState.transformRevision++
+    }
+  }
+
+  private onAimMouseDown = (event: MouseEvent) => {
+    if (!sceneState.aimMode) return
+    this.aimIsDragging = true
+    this.aimDragLast = { x: event.clientX, y: event.clientY }
+  }
+
+  private onAimMouseMove = (event: MouseEvent) => {
+    if (!sceneState.aimMode || !this.aimIsDragging) return
+    const proj = sceneState.selectedProjection
+    if (!proj) return
+
+    const dx = event.clientX - this.aimDragLast.x
+    const dy = event.clientY - this.aimDragLast.y
+    this.aimDragLast = { x: event.clientX, y: event.clientY }
+
+    _euler.setFromQuaternion(this.camera.quaternion)
+    _euler.y -= dx * 0.003
+    _euler.x -= dy * 0.003
+    _euler.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, _euler.x))
+    this.camera.quaternion.setFromEuler(_euler)
+
+    proj.projection.quaternion.copy(this.camera.quaternion)
+    proj.projection.updateMatrixWorld()
+    sceneState.transformRevision++
+  }
+
+  private onAimMouseUp = () => {
+    this.aimIsDragging = false
+  }
+
+  private onAimKeydown = (event: KeyboardEvent) => {
+    if (sceneState.aimMode) {
+      this.aimHeldKeys.add(event.code)
+    }
+    if (event.code === 'Escape' && sceneState.aimMode) {
+      this.exitAimMode()
+    }
+  }
+
+  private onAimKeyup = (event: KeyboardEvent) => {
+    this.aimHeldKeys.delete(event.code)
+  }
+
+  // ── Scene object management ──
 
   private addDefaultBox() {
     const box = new THREE.Mesh(
@@ -325,6 +513,10 @@ export class SceneEditor {
   }
 
   private doRemoveProjection(item: ProjectionItem) {
+    if (sceneState.aimMode && sceneState.selectedProjection?.projection === item.projection) {
+      this.exitAimMode()
+    }
+
     // Unproject from all objects
     for (const obj of sceneState.objects) {
       item.projection.unproject(obj.object)
@@ -385,9 +577,17 @@ export class SceneEditor {
     }
   }
 
+  // ── Render loop ──
+
   private animate() {
     this.animId = requestAnimationFrame(() => this.animate())
-    this.rig.tick()
+    const deltaMs = this.clock.getDelta() * 1000
+
+    if (sceneState.aimMode) {
+      this.updateAimMovement(deltaMs)
+    } else {
+      this.rig.tick()
+    }
 
     // Object selection changes
     if (sceneState.selected !== this.lastSelected) {
@@ -409,7 +609,7 @@ export class SceneEditor {
 
       this.lastSelectedProjection = sceneState.selectedProjection
       if (this.lastSelectedProjection) {
-        this.gizmo.attach(this.lastSelectedProjection.projection)
+        if (!sceneState.aimMode) this.gizmo.attach(this.lastSelectedProjection.projection)
         this.projectionHelper = new THREE.CameraHelper(this.lastSelectedProjection.projection)
         this.scene.add(this.projectionHelper)
       } else if (!sceneState.selected) {
@@ -464,9 +664,16 @@ export class SceneEditor {
   }
 
   dispose() {
+    if (sceneState.aimMode) this.exitAimMode()
     setSceneActions(null)
     cancelAnimationFrame(this.animId)
     this.ro.disconnect()
+    this.canvas.removeEventListener('mousedown', this.onAimMouseDown)
+    this.canvas.removeEventListener('mousemove', this.onAimMouseMove)
+    this.canvas.removeEventListener('mouseup', this.onAimMouseUp)
+    this.canvas.removeEventListener('mouseleave', this.onAimMouseUp)
+    document.removeEventListener('keydown', this.onAimKeydown)
+    document.removeEventListener('keyup', this.onAimKeyup)
     this.gizmo.dispose()
     if (this.projectionHelper) this.scene.remove(this.projectionHelper)
     for (const p of sceneState.projections) {

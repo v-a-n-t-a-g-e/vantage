@@ -33,6 +33,9 @@ export type SceneActions = {
   addProjection: (_name: string, _projection: VantageProjection, _imageBlob: Blob, _imagePath: string) => void
   removeProjection: (_item: ProjectionItem) => void
   addProjectionSilent: (_name: string, _projection: VantageProjection, _imagePath: string) => ProjectionItem
+  focusProjection: (_item: ProjectionItem) => void
+  enterAimMode: () => void
+  exitAimMode: () => void
 }
 
 type SceneState = {
@@ -43,6 +46,7 @@ type SceneState = {
   hovered: SceneObject | null
   transformMode: TransformMode
   transformRevision: number
+  aimMode: boolean
 }
 
 export const sceneState: SceneState = $state({
@@ -53,6 +57,7 @@ export const sceneState: SceneState = $state({
   hovered: null,
   transformMode: 'translate',
   transformRevision: 0,
+  aimMode: false,
 })
 
 let _sceneActions: SceneActions | null = $state(null)

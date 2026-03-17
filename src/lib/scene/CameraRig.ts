@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 type FlyTarget = { position: THREE.Vector3; target: THREE.Vector3 }
 
+const _dir = new THREE.Vector3()
+
 export class CameraRig extends OrbitControls {
   private flyTarget: FlyTarget | null = null
 
@@ -22,6 +24,16 @@ export class CameraRig extends OrbitControls {
     this.flyTarget = {
       target: center,
       position: center.clone().add(dir.multiplyScalar(size * 1.5)),
+    }
+  }
+
+  /** Fly the orbit camera to match a projection camera's viewpoint. */
+  flyToProjection(projection: THREE.PerspectiveCamera) {
+    const pos = projection.getWorldPosition(new THREE.Vector3())
+    projection.getWorldDirection(_dir)
+    this.flyTarget = {
+      position: pos,
+      target: pos.clone().addScaledVector(_dir, 10),
     }
   }
 
