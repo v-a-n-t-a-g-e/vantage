@@ -40,7 +40,9 @@
   role="button"
   tabindex="0"
 >
-  <div class="overflow-hidden text-ellipsis" class:opacity-40={!item.visible}>{item.name}</div>
+  <div class="overflow-hidden text-nowrap text-ellipsis" class:opacity-40={!item.visible}>
+    {item.name}
+  </div>
 
   <button
     class="-mx-1.5 ml-auto h-10 px-1.5
