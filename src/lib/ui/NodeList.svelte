@@ -5,7 +5,7 @@
   import { VantageProjection, loadTexture } from 'vantage-renderer'
   import Add from '@/assets/icons/Add.svg'
 
-  let assetInput: HTMLInputElement
+  let modelInput: HTMLInputElement
   let imageInput: HTMLInputElement
 
   async function handleFiles(files: FileList | null | undefined) {
@@ -20,7 +20,7 @@
         originalBlob: blob,
       })
     }
-    if (assetInput) assetInput.value = ''
+    if (modelInput) modelInput.value = ''
   }
 
   async function handleImages(files: FileList | null | undefined) {
@@ -90,7 +90,7 @@
     {/each}
   </section>
 
-  <!-- Assets -->
+  <!-- Models -->
   <section
     class="ui-container"
     onclick={(e) => {
@@ -101,17 +101,17 @@
     role="presentation"
   >
     <div class="flex h-10 items-center justify-between border-b px-3">
-      <span>Assets</span>
+      <span>Models</span>
       <button
         class="-mr-3 ui-button h-full px-3"
-        onclick={() => assetInput.click()}
+        onclick={() => modelInput.click()}
         title="Import GLTF/GLB"
       >
         <Add />
       </button>
     </div>
     <input
-      bind:this={assetInput}
+      bind:this={modelInput}
       class="hidden"
       accept=".gltf,.glb"
       multiple
@@ -131,7 +131,7 @@
     {:else}
       <div
         class="h-10 px-3 flex justify-center items-center text-gray-400"
-        onclick={() => assetInput.click()}
+        onclick={() => modelInput.click()}
         role="presentation"
       >
         import a 3D model
