@@ -1,12 +1,99 @@
 <script lang="ts">
   import NodeListItem from '@/lib/ui/NodeListItem.svelte'
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
+  import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
   import { loadGLTF } from '@/lib/gltfLoader.ts'
   import { VantageProjection, loadTexture } from 'vantage-renderer'
   import Add from '@/assets/icons/Add.svg'
 
   let modelInput: HTMLInputElement
   let imageInput: HTMLInputElement
+
+  // Drag-and-drop state
+  let dragList: 'projections' | 'objects' | null = $state(null)
+  let dragIndex: number | null = $state(null)
+  let dropIndex: number | null = $state(null)
+  let dropPosition: 'above' | 'below' | null = $state(null)
+
+  function handleDragStart(list: 'projections' | 'objects', index: number, e: DragEvent) {
+    dragList = list
+    dragIndex = index
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move'
+    }
+  }
+
+  function handleDragOver(list: 'projections' | 'objects', index: number, e: DragEvent) {
+    if (dragList !== list || dragIndex === null) return
+    e.preventDefault()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    const above = e.clientY < midY
+
+    dropIndex = index
+    dropPosition = above ? 'above' : 'below'
+  }
+
+  function handleDrop(list: 'projections' | 'objects', _index: number, e: DragEvent) {
+    e.preventDefault()
+    if (dragList !== list || dragIndex === null || dropIndex === null || dropPosition === null)
+      return
+
+    // Column-reverse: visual above = after in array, visual below = before in array
+    const targetIndex = dropPosition === 'above' ? dropIndex + 1 : dropIndex
+    reorder(list, dragIndex, targetIndex)
+    resetDragState()
+  }
+
+  function handleDragEnd() {
+    resetDragState()
+  }
+
+  function resetDragState() {
+    dragList = null
+    dragIndex = null
+    dropIndex = null
+    dropPosition = null
+  }
+
+  function reorder(list: 'projections' | 'objects', fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || fromIndex + 1 === toIndex) return
+
+    const arr: (SceneObject | ProjectionItem)[] =
+      list === 'projections' ? sceneState.projections : sceneState.objects
+    const [item] = arr.splice(fromIndex, 1)
+    const insertAt = toIndex > fromIndex ? toIndex - 1 : toIndex
+    arr.splice(insertAt, 0, item)
+
+    if (list === 'projections') reprojectAll()
+  }
+
+  function reprojectAll() {
+    for (const p of sceneState.projections) {
+      if (p.visible) {
+        for (const obj of sceneState.objects) {
+          p.projection.unproject(obj.object)
+        }
+      }
+    }
+    for (const p of sceneState.projections) {
+      if (p.visible) {
+        for (const obj of sceneState.objects) {
+          p.projection.project(obj.object)
+        }
+      }
+    }
+  }
+
+  function getDropPosition(list: 'projections' | 'objects', index: number) {
+    if (dragList !== list || dropIndex !== index || dragIndex === null) return null
+    // Column-reverse: above = after in array, below = before in array
+    if (dropPosition === 'above' && (index === dragIndex || index === dragIndex - 1)) return null
+    if (dropPosition === 'below' && (index === dragIndex || index === dragIndex + 1)) return null
+    return dropPosition
+  }
 
   async function handleFiles(files: FileList | null | undefined) {
     if (!files) return
@@ -63,31 +150,38 @@
       onchange={(e) => handleImages((e.target as HTMLInputElement).files)}
       type="file"
     />
-    {#each sceneState.projections as item (item.id)}
-      <NodeListItem
-        {item}
-        ontoggle={(i) => {
-          if (i.kind === 'projection') {
-            i.visible = !i.visible
-            for (const obj of sceneState.objects) {
-              if (i.visible) {
-                i.projection.project(obj.object)
-              } else {
-                i.projection.unproject(obj.object)
+    <div class="flex flex-col-reverse">
+      {#each sceneState.projections as item, index (item.id)}
+        <NodeListItem
+          dropPosition={getDropPosition('projections', index)}
+          {item}
+          ondragend={handleDragEnd}
+          ondragover={(e) => handleDragOver('projections', index, e)}
+          ondragstart={(e) => handleDragStart('projections', index, e)}
+          ondrop={(e) => handleDrop('projections', index, e)}
+          ontoggle={(i) => {
+            if (i.kind === 'projection') {
+              i.visible = !i.visible
+              for (const obj of sceneState.objects) {
+                if (i.visible) {
+                  i.projection.project(obj.object)
+                } else {
+                  i.projection.unproject(obj.object)
+                }
               }
             }
-          }
-        }}
-      />
-    {:else}
-      <div
-        class="h-10 px-3 flex justify-center items-center text-gray-400"
-        onclick={() => imageInput.click()}
-        role="presentation"
-      >
-        import an image
-      </div>
-    {/each}
+          }}
+        />
+      {:else}
+        <div
+          class="h-10 px-3 flex justify-center items-center text-gray-400"
+          onclick={() => imageInput.click()}
+          role="presentation"
+        >
+          import an image
+        </div>
+      {/each}
+    </div>
   </section>
 
   <!-- Models -->
@@ -118,24 +212,31 @@
       onchange={(e) => handleFiles((e.target as HTMLInputElement).files)}
       type="file"
     />
-    {#each sceneState.objects as item (item.id)}
-      <NodeListItem
-        {item}
-        ontoggle={(i) => {
-          if (i.kind === 'object') {
-            i.object.visible = !i.object.visible
-            i.visible = i.object.visible
-          }
-        }}
-      />
-    {:else}
-      <div
-        class="h-10 px-3 flex justify-center items-center text-gray-400"
-        onclick={() => modelInput.click()}
-        role="presentation"
-      >
-        import a 3D model
-      </div>
-    {/each}
+    <div class="flex flex-col-reverse">
+      {#each sceneState.objects as item, index (item.id)}
+        <NodeListItem
+          dropPosition={getDropPosition('objects', index)}
+          {item}
+          ondragend={handleDragEnd}
+          ondragover={(e) => handleDragOver('objects', index, e)}
+          ondragstart={(e) => handleDragStart('objects', index, e)}
+          ondrop={(e) => handleDrop('objects', index, e)}
+          ontoggle={(i) => {
+            if (i.kind === 'object') {
+              i.object.visible = !i.object.visible
+              i.visible = i.object.visible
+            }
+          }}
+        />
+      {:else}
+        <div
+          class="h-10 px-3 flex justify-center items-center text-gray-400"
+          onclick={() => modelInput.click()}
+          role="presentation"
+        >
+          import a 3D model
+        </div>
+      {/each}
+    </div>
   </section>
 </aside>
