@@ -6,6 +6,8 @@
     openProject,
     newProject,
     openRecentProject,
+    exampleProjects,
+    loadDemoProject,
   } from '@/lib/project/projectActions.ts'
   import MenuDropdown from './menu/MenuDropdown.svelte'
   import type { MenuItem } from './menu/types.ts'
@@ -29,10 +31,10 @@
     },
     {
       label: 'Examples',
-      options: [
-        { label: 'Example 1', action: () => console.log('load example 1') },
-        { label: 'Example 2', action: () => console.log('load example 2') },
-      ],
+      options: exampleProjects.map((ex) => ({
+        label: ex.label,
+        action: () => loadDemoProject(ex.basePath),
+      })),
     },
     { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
   ])

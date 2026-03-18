@@ -250,14 +250,75 @@ export async function openRecentProject(handle: FileSystemDirectoryHandle) {
 }
 
 export async function autoLoadLastProject() {
-  if (!supportsNativeFS()) return
+  if (!supportsNativeFS()) {
+    await loadDemoProject()
+    return
+  }
   const [last] = projectState.recentProjects
-  if (!last) return
+  if (!last) {
+    await loadDemoProject()
+    return
+  }
   try {
     const perm = await last.handle.requestPermission({ mode: 'readwrite' })
-    if (perm !== 'granted') return
+    if (perm !== 'granted') {
+      await loadDemoProject()
+      return
+    }
     await loadFromHandle(last.handle)
   } catch {
-    // Silently fail
+    await loadDemoProject()
+  }
+}
+
+// ── Demo / Example Projects ──
+
+interface ExampleProject {
+  label: string
+  basePath: string
+}
+
+export const exampleProjects: ExampleProject[] = [
+  { label: 'Demo', basePath: '/demo' },
+]
+
+export async function loadDemoProject(basePath = '/demo') {
+  await loadExampleFromUrl(basePath)
+}
+
+async function loadExampleFromUrl(basePath: string) {
+  projectState.busy = true
+  try {
+    const res = await fetch(`${basePath}/scene.json`)
+    if (!res.ok) return
+    const manifest = JSON.parse(await res.text())
+
+    sceneActions.value?.clearScene()
+
+    const readFile = async (path: string): Promise<File> => {
+      const r = await fetch(`${basePath}/${path}`)
+      if (!r.ok) throw new Error(`Failed to fetch ${path}`)
+      const blob = await r.blob()
+      return new File([blob], path.split('/').pop()!)
+    }
+
+    const objects = await deserializeScene(manifest, readFile)
+    for (const obj of objects) {
+      const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
+      if (item) {
+        item.id = obj.id
+        item.visible = obj.visible
+        item.object.visible = obj.visible
+      }
+    }
+
+    await loadProjection(manifest, readFile)
+
+    projectState.directoryHandle = null
+    projectState.memoryFS = null
+    projectState.projectName = basePath.split('/').pop() ?? 'example'
+    projectState.dirty = false
+  } finally {
+    projectState.busy = false
   }
 }

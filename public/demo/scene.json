@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "objects": [
+    {
+      "id": "9ace1bb6-03d1-4284-87a8-4b5201852dcb",
+      "name": "Box",
+      "type": "mesh",
+      "source": {
+        "kind": "primitive",
+        "geometryType": "box"
+      },
+      "transform": {
+        "position": [
+          -1.8027553233873057,
+          0.254394486089188,
+          7.069506603568371
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "visible": true
+    },
+    {
+      "id": "44557f57-901a-48c7-b0f6-f30e26d95510",
+      "name": "scene-2",
+      "type": "mesh",
+      "source": {
+        "kind": "imported",
+        "path": "models/scene-2.gltf"
+      },
+      "transform": {
+        "position": [
+          0,
+          -44.1,
+          -0.5241161460956576
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "visible": true
+    }
+  ],
+  "camera": {
+    "position": [
+      356.76910620101876,
+      277.48708260079246,
+      356.7691062010188
+    ],
+    "target": [
+      0,
+      0,
+      0
+    ],
+    "fov": 60
+  },
+  "projections": [
+    {
+      "id": "a0ca925b-1b65-4724-94be-59b16c44d0df",
+      "name": "Screenshot 2026-02-13 at 13.06.40",
+      "imagePath": "projections/Screenshot 2026-02-13 at 13.06.40.png",
+      "transform": {
+        "position": [
+          -67.8332,
+          75.8261,
+          304.6093
+        ],
+        "rotation": [
+          -0.22590320107338208,
+          0.3699155536431902,
+          0.09047564089263804
+        ]
+      },
+      "fov": 79,
+      "near": 1,
+      "far": 522,
+      "visible": true
+    }
+  ]
+}
