@@ -5,7 +5,7 @@ import { exportToGLB } from '@/lib/project/glbExporter.ts'
 import { createProjectFS, supportsNativeFS } from '@/lib/project/fileSystem.ts'
 import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 import { createMemoryFS, exportAsZip, downloadBlob } from '@/lib/project/memoryFS.ts'
-import { storeHandle, getStoredHandle, clearStoredHandle } from '@/lib/project/handleStore.ts'
+import { addRecentHandle, getRecentHandles } from '@/lib/project/handleStore.ts'
 
 let getCameraState:
   | (() => {
@@ -64,6 +64,11 @@ async function writeProjectFiles(fs: ProjectFS) {
   await fs.writeFile('scene.json', JSON.stringify(manifest, null, 2))
 }
 
+async function recordRecent(handle: FileSystemDirectoryHandle) {
+  await addRecentHandle(handle)
+  projectState.recentProjects = await getRecentHandles()
+}
+
 // ── Save ──
 
 export async function saveProject() {
@@ -73,7 +78,7 @@ export async function saveProject() {
     try {
       const fs = createProjectFS(projectState.directoryHandle)
       await writeProjectFiles(fs)
-      await storeHandle(projectState.directoryHandle)
+      await recordRecent(projectState.directoryHandle)
       projectState.dirty = false
     } finally {
       projectState.busy = false
@@ -192,17 +197,6 @@ async function loadFromFiles(files: File[]) {
   }
 }
 
-// ── Resume (Chromium only) ──
-
-export async function resumeProject(handle: FileSystemDirectoryHandle) {
-  const perm = await handle.requestPermission({ mode: 'readwrite' })
-  if (perm !== 'granted') {
-    await clearStoredHandle()
-    throw new Error('Permission denied')
-  }
-  await loadFromHandle(handle)
-}
-
 async function loadFromHandle(handle: FileSystemDirectoryHandle) {
   projectState.busy = true
   try {
@@ -228,7 +222,7 @@ async function loadFromHandle(handle: FileSystemDirectoryHandle) {
     projectState.memoryFS = null
     projectState.projectName = handle.name
     projectState.dirty = false
-    await storeHandle(handle)
+    await recordRecent(handle)
   } finally {
     projectState.busy = false
   }
@@ -246,12 +240,36 @@ export async function newProject() {
   projectState.memoryFS = null
   projectState.projectName = null
   projectState.dirty = false
-  await clearStoredHandle()
 }
 
-// ── Resume check ──
+// ── Recent Projects ──
 
-export async function checkForStoredProject(): Promise<FileSystemDirectoryHandle | null> {
-  if (!supportsNativeFS()) return null
-  return getStoredHandle()
+export async function loadRecentProjects() {
+  projectState.recentProjects = await getRecentHandles()
+}
+
+export async function openRecentProject(handle: FileSystemDirectoryHandle) {
+  if (projectState.dirty) {
+    if (!confirm('You have unsaved changes. Discard them?')) return
+  }
+  try {
+    const perm = await handle.requestPermission({ mode: 'readwrite' })
+    if (perm !== 'granted') return
+    await loadFromHandle(handle)
+  } catch {
+    // Permission denied or load error — keep entry in recents list
+  }
+}
+
+export async function autoLoadLastProject() {
+  if (!supportsNativeFS()) return
+  const [last] = projectState.recentProjects
+  if (!last) return
+  try {
+    const perm = await last.handle.requestPermission({ mode: 'readwrite' })
+    if (perm !== 'granted') return
+    await loadFromHandle(last.handle)
+  } catch {
+    // Silently fail
+  }
 }

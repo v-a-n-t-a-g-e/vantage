@@ -1,7 +1,7 @@
 <script lang="ts">
   import Logo from '@/assets/icons/Vantage.svg'
   import { projectState } from '@/lib/project/projectState.svelte.ts'
-  import { saveProject, openProject, newProject } from '@/lib/project/projectActions.ts'
+  import { saveProject, openProject, newProject, openRecentProject } from '@/lib/project/projectActions.ts'
   import MenuDropdown from './menu/MenuDropdown.svelte'
   import type { MenuItem } from './menu/types.ts'
 
@@ -11,31 +11,31 @@
     activeMenu = null
   }
 
-  const menus: { label: string; options: MenuItem[] }[] = [
+  const fileOptions = $derived<MenuItem[]>([
+    { label: 'New', shortcut: 'Cmd+N', action: newProject },
+    { label: 'Open', shortcut: 'Cmd+O', action: openProject },
     {
-      label: 'File',
+      label: 'Open Recent',
+      disabled: projectState.recentProjects.length === 0,
+      options: projectState.recentProjects.map((p) => ({
+        label: p.name,
+        action: () => openRecentProject(p.handle),
+      })),
+    },
+    {
+      label: 'Examples',
       options: [
-        { label: 'New', shortcut: 'Cmd+N', action: newProject },
-        { label: 'Open', shortcut: 'Cmd+O', action: openProject },
-        {
-          label: 'Examples',
-          options: [
-            { label: 'Example 1', action: () => console.log('load example 1') },
-            { label: 'Example 2', action: () => console.log('load example 2') },
-          ],
-        },
-        {
-          label: 'Open Recent',
-          options: [],
-        },
-        { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
+        { label: 'Example 1', action: () => console.log('load example 1') },
+        { label: 'Example 2', action: () => console.log('load example 2') },
       ],
     },
-    {
-      label: 'View',
-      options: [],
-    },
-  ]
+    { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
+  ])
+
+  const menus = $derived<{ label: string; options: MenuItem[] }[]>([
+    { label: 'File', options: fileOptions },
+    { label: 'View', options: [] },
+  ])
 </script>
 
 <svelte:window onclick={close} />

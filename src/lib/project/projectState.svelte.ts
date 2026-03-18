@@ -1,4 +1,5 @@
 import type { MemoryFS } from '@/lib/project/memoryFS.ts'
+import type { RecentProject } from '@/lib/project/handleStore.ts'
 
 type ProjectState = {
   directoryHandle: FileSystemDirectoryHandle | null
@@ -6,6 +7,7 @@ type ProjectState = {
   projectName: string | null
   dirty: boolean
   busy: boolean
+  recentProjects: RecentProject[]
 }
 
 export const projectState: ProjectState = $state({
@@ -14,4 +16,5 @@ export const projectState: ProjectState = $state({
   projectName: null,
   dirty: false,
   busy: false,
+  recentProjects: [],
 })

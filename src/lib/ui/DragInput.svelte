@@ -88,17 +88,14 @@
 </script>
 
 <div class="relative flex flex-col">
-  <div class="flex justify-between items-center flex-row gap-2">
+  <div class="flex flex-row items-center justify-between gap-2">
     <span class="capitalize opacity-50">{label}</span>
-    <div class="bg-current w-full h-px" style="background: var(--color-axis-{axis})"></div>
+    <div style="background: var(--color-axis-{axis})" class="h-px w-full bg-current"></div>
   </div>
 
   <span
-    tabindex="-1"
-    role="spinbutton"
-    {onpointerdown}
-    {onpointermove}
-    {onpointerup}
+    class="flex w-full cursor-ew-resize items-center gap-1.5 tnum select-none"
+    class:invisible={editing}
     onkeydown={async (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         editValue = value
@@ -109,8 +106,11 @@
         inputEl?.select()
       }
     }}
-    class="flex items-center gap-1.5 w-full cursor-ew-resize select-none tnum"
-    class:invisible={editing}
+    {onpointerdown}
+    {onpointermove}
+    {onpointerup}
+    role="spinbutton"
+    tabindex="-1"
   >
     <span class="flex-1 text-right">{fmt(value)}</span>
   </span>
@@ -118,8 +118,9 @@
   <div class="absolute inset-0 flex items-end gap-1.5 tnum" class:pointer-events-none={!editing}>
     <input
       bind:this={inputEl}
-      bind:value={editValue}
-      type="number"
+      class="min-w-0 flex-1 bg-transparent text-right outline-none"
+      class:opacity-0={!editing}
+      onblur={commit}
       onfocus={() => {
         if (!editing) {
           editValue = value
@@ -127,14 +128,13 @@
           onstart?.()
         }
       }}
-      onblur={commit}
-      {onkeydown}
       oninput={() => {
         const n = parseFloat(String(editValue))
         if (!isNaN(n)) onchange(n)
       }}
-      class="flex-1 min-w-0 bg-transparent text-right outline-none"
-      class:opacity-0={!editing}
+      {onkeydown}
+      type="number"
+      bind:value={editValue}
     />
   </div>
 </div>

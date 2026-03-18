@@ -3,4 +3,5 @@ export interface MenuItem {
   shortcut?: string
   action?: () => void
   options?: MenuItem[]
+  disabled?: boolean
 }

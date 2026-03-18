@@ -10,14 +10,11 @@
     saveProject,
     openProject,
     newProject,
-    resumeProject,
-    checkForStoredProject,
+    loadRecentProjects,
+    autoLoadLastProject,
   } from '@/lib/project/projectActions.ts'
 
-  let resumeHandle: FileSystemDirectoryHandle | null = $state(null)
-  let showResume = $state(false)
-
-  onMount(() => {
+  onMount(async () => {
     const cleanup = registerShortcuts([
       { key: 'z', meta: true, action: undo },
       { key: 'z', meta: true, shift: true, action: redo },
@@ -51,12 +48,8 @@
       },
     ])
 
-    checkForStoredProject().then((handle) => {
-      if (handle) {
-        resumeHandle = handle
-        showResume = true
-      }
-    })
+    await loadRecentProjects()
+    await autoLoadLastProject()
 
     return cleanup
   })
@@ -76,37 +69,9 @@
       return () => window.removeEventListener('beforeunload', handler)
     }
   })
-
-  async function handleResume() {
-    if (!resumeHandle) return
-    showResume = false
-    try {
-      await resumeProject(resumeHandle)
-    } catch {
-      // Permission denied or load error
-    }
-    resumeHandle = null
-  }
-
-  function dismissResume() {
-    showResume = false
-    resumeHandle = null
-  }
 </script>
 
 <main class="relative w-screen h-screen overflow-hidden">
   <Renderer />
   <Interface />
-
-  {#if showResume}
-    <div
-      class="absolute top-12 left-1/2 -translate-x-1/2 z-50 ui-container flex items-center gap-3 px-4 py-2"
-    >
-      <span class="text-sm">Resume <strong>{resumeHandle?.name}</strong>?</span>
-      <button class="ui-button px-3 py-1 text-sm bg-brand text-white" onclick={handleResume}
-        >Resume</button
-      >
-      <button class="ui-button px-3 py-1 text-sm" onclick={dismissResume}>Dismiss</button>
-    </div>
-  {/if}
 </main>

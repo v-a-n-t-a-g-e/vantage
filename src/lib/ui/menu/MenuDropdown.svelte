@@ -25,10 +25,16 @@
 >
   {#each items as item, i (i)}
     {#if item.options}
-      <div onmouseenter={() => (activeIndex = i)} onmouseleave={() => (activeIndex = null)}>
+      <div
+        onmouseenter={() => !item.disabled && (activeIndex = i)}
+        onmouseleave={() => (activeIndex = null)}
+      >
         <button
           style="anchor-name: {anchorName}-{i}"
-          class="ui-button w-full cursor-pointer items-center justify-between gap-4"
+          class="ui-button w-full items-center justify-between gap-4"
+          class:cursor-pointer={!item.disabled}
+          class:opacity-40={item.disabled}
+          disabled={item.disabled}
         >
           <span>{item.label}</span>
           <ArrowRight />
@@ -45,6 +51,8 @@
     {:else}
       <button
         class="ui-button w-full cursor-pointer items-center justify-between gap-4"
+        class:opacity-40={item.disabled}
+        disabled={item.disabled}
         onclick={() => {
           item.action?.()
           onclose()
