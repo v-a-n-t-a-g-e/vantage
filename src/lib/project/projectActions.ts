@@ -1,7 +1,6 @@
 import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
 import { projectState } from '@/lib/project/projectState.svelte.ts'
 import { serializeScene, deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
-import { exportToGLB } from '@/lib/project/glbExporter.ts'
 import { createProjectFS, supportsNativeFS } from '@/lib/project/fileSystem.ts'
 import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 import { createMemoryFS, exportAsZip, downloadBlob } from '@/lib/project/memoryFS.ts'
@@ -19,17 +18,7 @@ export function setGetCameraState(fn: typeof getCameraState) {
   getCameraState = fn
 }
 
-const PROJECT_DIRS = [
-  'geometry',
-  'projections',
-  'cameras',
-  'cameras/frames',
-  'colmap',
-  'pointcloud',
-  'splat',
-  'segmentation',
-  'video',
-]
+const PROJECT_DIRS = ['models', 'projections']
 
 async function ensureDirectories(fs: ProjectFS) {
   for (const dir of PROJECT_DIRS) {
@@ -41,14 +30,9 @@ async function writeProjectFiles(fs: ProjectFS) {
   await ensureDirectories(fs)
 
   for (const item of sceneState.objects) {
-    if (item.source.kind === 'imported') {
-      if (item.source.originalBlob) {
-        await fs.writeFile(item.source.relativePath, item.source.originalBlob)
-        item.source.originalBlob = undefined
-      }
-    } else {
-      const glb = await exportToGLB(item.object)
-      await fs.writeFile(`geometry/${item.id}.glb`, glb)
+    if (item.source.kind === 'imported' && item.source.originalBlob) {
+      await fs.writeFile(item.source.relativePath, item.source.originalBlob)
+      item.source.originalBlob = undefined
     }
   }
 

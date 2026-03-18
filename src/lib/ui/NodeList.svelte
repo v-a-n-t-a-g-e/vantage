@@ -16,7 +16,7 @@
       const name = file.name.replace(/\.(gltf|glb)$/i, '')
       sceneActions.value?.addObject(name, group, {
         kind: 'imported',
-        relativePath: `geometry/${file.name}`,
+        relativePath: `models/${file.name}`,
         originalBlob: blob,
       })
     }

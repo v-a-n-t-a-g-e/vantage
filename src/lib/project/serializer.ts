@@ -2,6 +2,7 @@ import type { SceneObject, SceneObjectSource, ProjectionItem } from '@/lib/scene
 import type { SceneManifest, SceneObjectEntry, ProjectionEntry } from '@/lib/project/types.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
 import { VantageProjection, loadTexture } from 'vantage-renderer'
+import * as THREE from 'three'
 
 export function serializeScene(
   objects: SceneObject[],
@@ -88,33 +89,32 @@ export async function deserializeScene(
   }[] = []
 
   for (const entry of manifest.objects) {
-    let filePath: string
-    if (entry.source.kind === 'imported') {
-      filePath = entry.source.path
-    } else {
-      filePath = `geometry/${entry.id}.glb`
-    }
-
-    const file = await readFile(filePath)
-    const { group } = await loadGLTF(file)
-
-    // Apply stored transform
-    group.position.set(...entry.transform.position)
-    group.rotation.set(...entry.transform.rotation)
-    group.scale.set(...entry.transform.scale)
-    group.visible = entry.visible
-
+    let object: import('three').Object3D
     let source: SceneObjectSource
+
     if (entry.source.kind === 'primitive') {
+      object = new THREE.Mesh(
+        new THREE.BoxGeometry(10, 10, 10),
+        new THREE.MeshStandardMaterial({ color: 0x888888 })
+      )
       source = { kind: 'primitive', geometryType: entry.source.geometryType }
     } else {
+      const file = await readFile(entry.source.path)
+      const { group } = await loadGLTF(file)
+      object = group
       source = { kind: 'imported', relativePath: entry.source.path }
     }
+
+    // Apply stored transform
+    object.position.set(...entry.transform.position)
+    object.rotation.set(...entry.transform.rotation)
+    object.scale.set(...entry.transform.scale)
+    object.visible = entry.visible
 
     results.push({
       id: entry.id,
       name: entry.name,
-      object: group,
+      object,
       source,
       visible: entry.visible,
     })

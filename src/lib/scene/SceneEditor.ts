@@ -563,7 +563,7 @@ export class SceneEditor {
         const name = file.name.replace(/\.(gltf|glb)$/i, '')
         const source: SceneObjectSource = {
           kind: 'imported',
-          relativePath: `geometry/${file.name}`,
+          relativePath: `models/${file.name}`,
           originalBlob: blob,
         }
         const item = this.doAdd(name, group, source)
