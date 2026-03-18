@@ -48,7 +48,7 @@
     accumulated += Math.abs(e.movementX)
     const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1
     currentValue += e.movementX * step * multiplier
-    onchange(parseFloat(currentValue.toFixed(10)))
+    onchange(parseFloat(currentValue.toFixed(4)))
   }
 
   async function onpointerup() {
@@ -78,12 +78,14 @@
   }
 
   function onkeydown(e: KeyboardEvent & { currentTarget: HTMLInputElement }) {
-    if (e.key === 'Enter') e.currentTarget.blur()
-    if (e.key === 'Escape') {
-      editing = false
-      e.currentTarget.blur()
+    switch (e.key) {
+      case 'Enter':
+      case 'Escape':
+      case (e.metaKey || e.ctrlKey) && 'z':
+      case (e.metaKey || e.ctrlKey) && 'y':
+        e.currentTarget.blur()
+        break
     }
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'y')) e.currentTarget.blur()
   }
 </script>
 
@@ -96,16 +98,6 @@
   <span
     class="flex w-full cursor-ew-resize items-center gap-1.5 tnum select-none"
     class:invisible={editing}
-    onkeydown={async (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        editValue = value
-        editing = true
-        onstart?.()
-        await tick()
-        inputEl?.focus()
-        inputEl?.select()
-      }
-    }}
     {onpointerdown}
     {onpointermove}
     {onpointerup}

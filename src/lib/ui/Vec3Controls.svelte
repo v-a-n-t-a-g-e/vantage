@@ -72,13 +72,13 @@
     {#each ['x', 'z', 'y'] as axis, i (axis)}
       <div class="flex-1 px-3 py-1.5">
         <DragInput
-          label={labels[i]}
-          value={values[axis as Axis]}
-          {step}
           {axis}
-          onstart={() => onstart(axis as Axis)}
+          label={labels[i]}
           onchange={(v) => onchange(axis as Axis, v)}
           onend={(v) => onend(axis as Axis, v)}
+          onstart={() => onstart(axis as Axis)}
+          {step}
+          value={values[axis as Axis]}
         />
       </div>
     {/each}
