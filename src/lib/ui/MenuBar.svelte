@@ -17,7 +17,6 @@
       options: [
         { label: 'New', shortcut: 'Cmd+N', action: newProject },
         { label: 'Open', shortcut: 'Cmd+O', action: openProject },
-        { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
         {
           label: 'Examples',
           options: [
@@ -25,6 +24,11 @@
             { label: 'Example 2', action: () => console.log('load example 2') },
           ],
         },
+        {
+          label: 'Open Recent',
+          options: [],
+        },
+        { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
       ],
     },
     {
@@ -42,7 +46,7 @@
   {#each menus as menu, i (menu.label)}
     <div
       style="anchor-name: --menu-{i}"
-      class="ui-button relative cursor-pointer select-none"
+      class="relative ui-button cursor-pointer select-none"
       class:dirty={i === 0 && projectState.dirty}
       onclick={(e) => {
         e.stopPropagation()
