@@ -279,7 +279,7 @@ export class SceneEditor {
   }
 
   private exitAimMode() {
-    if (sceneState.tool !== 'aim') return
+    if (sceneState.tool === 'aim') sceneState.tool = 'translate'
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
 
     this.aimHeldKeys.clear()

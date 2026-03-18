@@ -44,15 +44,21 @@
     },
   ]
 
-  let prevTool: Tool = sceneState.tool
-
   $effect(() => {
-    const currentTool = sceneState.tool
-    if (currentTool === 'aim' && prevTool !== 'aim') {
-      untrack(() => sceneActions.value?.enterAimMode())
+    const active = tools.find(t => t.value === sceneState.tool)
+    if (active?.hidden?.()) {
+      const fallback = tools.find(t => !t.hidden?.() && !t.disabled?.())
+      if (fallback) untrack(() => (sceneState.tool = fallback.value))
     }
-    prevTool = currentTool
   })
+
+  function changeTool() {
+    if (sceneState.tool === 'aim') {
+      sceneActions.value?.enterAimMode()
+    } else {
+      sceneActions.value?.exitAimMode()
+    }
+  }
 </script>
 
 <div
@@ -62,17 +68,12 @@
 >
   {#each tools as { icon: Icon, ...tool } (tool.label)}
     {#if !tool.hidden?.()}
-      <label
-        class="ui-button"
-        class:!bg-green={sceneState.tool === tool.value}
-        class:cursor-pointer={!tool.disabled?.()}
-        class:opacity-40={tool.disabled?.()}
-      >
+      <label class="ui-button" class:!bg-green={sceneState.tool === tool.value}>
         <input
           name="active-tool"
           class="sr-only"
           aria-label={tool.label}
-          disabled={tool.disabled?.()}
+          onchange={changeTool}
           type="radio"
           value={tool.value}
           bind:group={sceneState.tool}
