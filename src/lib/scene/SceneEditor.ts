@@ -52,6 +52,7 @@ export class SceneEditor {
   private rig: CameraRig
   private gizmo: TransformGizmo
   private hoverHelper: THREE.BoxHelper | null = null
+  private selectionHelper: THREE.BoxHelper | null = null
   private projectionHelper: THREE.CameraHelper | null = null
   private lastSelected: SceneObject | ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
@@ -279,7 +280,7 @@ export class SceneEditor {
   }
 
   private exitAimMode() {
-    if (sceneState.tool === 'aim') sceneState.tool = 'translate'
+    if (sceneState.tool === 'aim') sceneState.tool = 'cursor'
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
 
     this.aimHeldKeys.clear()
@@ -620,12 +621,24 @@ export class SceneEditor {
           this.projectionHelper = null
         }
       }
+      // Clean up old selection box helper
+      if (this.selectionHelper) {
+        this.scene.remove(this.selectionHelper)
+        this.selectionHelper = null
+      }
 
       this.lastSelected = sceneState.selected
       if (this.lastSelected?.kind === 'object') {
-        this.gizmo.attach(this.lastSelected.object)
+        if (sceneState.tool === 'cursor') {
+          this.gizmo.detach()
+          this.selectionHelper = new THREE.BoxHelper(this.lastSelected.object, themeColors.brand)
+          this.scene.add(this.selectionHelper)
+        } else {
+          this.gizmo.attach(this.lastSelected.object)
+        }
       } else if (this.lastSelected?.kind === 'projection') {
-        if (sceneState.tool !== 'aim') this.gizmo.attach(this.lastSelected.projection)
+        if (sceneState.tool !== 'aim' && sceneState.tool !== 'cursor')
+          this.gizmo.attach(this.lastSelected.projection)
         this.projectionHelper = new THREE.CameraHelper(this.lastSelected.projection)
         this.scene.add(this.projectionHelper)
       } else {
@@ -635,10 +648,31 @@ export class SceneEditor {
 
     // Update projection helper if it exists
     if (this.projectionHelper) this.projectionHelper.update()
+    // Update selection box helper if it exists
+    if (this.selectionHelper) this.selectionHelper.update()
 
-    // Transform tool changes
-    if (TRANSFORM_TOOLS.includes(sceneState.tool as TransformTool)) {
-      this.gizmo.setMode(sceneState.tool as TransformTool)
+    // Handle tool changes (cursor ↔ transform)
+    if (sceneState.tool === 'cursor') {
+      // In cursor mode: detach gizmo, show selection helper for objects
+      if (this.gizmo.object) this.gizmo.detach()
+      if (this.lastSelected?.kind === 'object' && !this.selectionHelper) {
+        this.selectionHelper = new THREE.BoxHelper(this.lastSelected.object, themeColors.brand)
+        this.scene.add(this.selectionHelper)
+      }
+    } else {
+      // In transform/aim mode: remove selection helper, attach gizmo
+      if (this.selectionHelper) {
+        this.scene.remove(this.selectionHelper)
+        this.selectionHelper = null
+      }
+      if (TRANSFORM_TOOLS.includes(sceneState.tool as TransformTool)) {
+        this.gizmo.setMode(sceneState.tool as TransformTool)
+        if (this.lastSelected?.kind === 'object' && !this.gizmo.object) {
+          this.gizmo.attach(this.lastSelected.object)
+        } else if (this.lastSelected?.kind === 'projection' && !this.gizmo.object) {
+          this.gizmo.attach(this.lastSelected.projection)
+        }
+      }
     }
 
     // Hover highlight
@@ -661,9 +695,11 @@ export class SceneEditor {
     const gizmoWasVisible = gizmoHelper.visible
     const helperWasVisible = this.projectionHelper?.visible ?? false
     const hoverWasVisible = this.hoverHelper?.visible ?? false
+    const selectionWasVisible = this.selectionHelper?.visible ?? false
     gizmoHelper.visible = false
     if (this.projectionHelper) this.projectionHelper.visible = false
     if (this.hoverHelper) this.hoverHelper.visible = false
+    if (this.selectionHelper) this.selectionHelper.visible = false
 
     // Update all visible projections
     for (const p of sceneState.projections) {
@@ -674,6 +710,7 @@ export class SceneEditor {
     gizmoHelper.visible = gizmoWasVisible
     if (this.projectionHelper) this.projectionHelper.visible = helperWasVisible
     if (this.hoverHelper) this.hoverHelper.visible = hoverWasVisible
+    if (this.selectionHelper) this.selectionHelper.visible = selectionWasVisible
 
     this.renderer.render(this.scene, this.camera)
   }
@@ -691,6 +728,7 @@ export class SceneEditor {
     document.removeEventListener('keyup', this.onAimKeyup)
     this.gizmo.dispose()
     if (this.projectionHelper) this.scene.remove(this.projectionHelper)
+    if (this.selectionHelper) this.scene.remove(this.selectionHelper)
     for (const p of sceneState.projections) {
       p.projection.dispose()
     }
