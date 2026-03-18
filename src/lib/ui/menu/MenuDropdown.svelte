@@ -28,6 +28,7 @@
       <div
         onmouseenter={() => !item.disabled && (activeIndex = i)}
         onmouseleave={() => (activeIndex = null)}
+        role="none"
       >
         <button
           style="anchor-name: {anchorName}-{i}"
@@ -100,6 +101,7 @@
     position: fixed;
     top: anchor(top);
     left: anchor(right);
+    margin-top: -1px;
     position-try-fallbacks: --submenu-left;
   }
 

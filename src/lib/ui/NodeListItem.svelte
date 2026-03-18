@@ -22,7 +22,7 @@
 </script>
 
 <div
-  class="group flex h-10 cursor-pointer items-center gap-2 px-3 select-none"
+  class="group flex h-10 cursor-pointer items-center gap-1 px-3 select-none"
   class:bg-brand={sceneState.selected === item}
   onclick={select}
   ondblclick={() => {
