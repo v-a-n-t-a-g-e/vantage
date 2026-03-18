@@ -15,4 +15,4 @@
   })
 </script>
 
-<canvas class="w-full h-full block" bind:this={canvas}></canvas>
+<canvas bind:this={canvas} class="block h-full w-full"></canvas>

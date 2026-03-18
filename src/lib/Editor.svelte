@@ -14,7 +14,7 @@
     autoLoadLastProject,
   } from '@/lib/project/projectActions.ts'
 
-  onMount(async () => {
+  onMount(() => {
     const cleanup = registerShortcuts([
       { key: 'z', meta: true, action: undo },
       { key: 'z', meta: true, shift: true, action: redo },
@@ -48,8 +48,7 @@
       },
     ])
 
-    await loadRecentProjects()
-    await autoLoadLastProject()
+    loadRecentProjects().then(() => autoLoadLastProject())
 
     return cleanup
   })
@@ -71,7 +70,7 @@
   })
 </script>
 
-<main class="relative w-screen h-screen overflow-hidden">
+<main class="relative h-screen w-screen overflow-hidden">
   <Renderer />
   <Interface />
 </main>
