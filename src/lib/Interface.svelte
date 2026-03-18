@@ -7,7 +7,7 @@
 </script>
 
 <div
-  class="absolute inset-4 grid pointer-events-none grid-cols-[250px_1fr_1fr_300px] grid-rows-[auto_1fr] gap-4"
+  class="pointer-events-none absolute inset-4 grid grid-cols-[250px_1fr_1fr_300px] grid-rows-[auto_1fr] gap-4"
 >
   <NodeList />
   <MenuBar />

@@ -45,9 +45,9 @@
   ]
 
   $effect(() => {
-    const active = tools.find(t => t.value === sceneState.tool)
+    const active = tools.find((t) => t.value === sceneState.tool)
     if (active?.hidden?.()) {
-      const fallback = tools.find(t => !t.hidden?.() && !t.disabled?.())
+      const fallback = tools.find((t) => !t.hidden?.() && !t.disabled?.())
       if (fallback) untrack(() => (sceneState.tool = fallback.value))
     }
   })

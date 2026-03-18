@@ -34,9 +34,18 @@ export type SceneActions = {
   focusObject: (_item: SceneObject) => void
   clearScene: () => void
   addObjectSilent: (_name: string, _obj: Object3D, _source: SceneObjectSource) => SceneObject
-  addProjection: (_name: string, _projection: VantageProjection, _imageBlob: Blob, _imagePath: string) => void
+  addProjection: (
+    _name: string,
+    _projection: VantageProjection,
+    _imageBlob: Blob,
+    _imagePath: string
+  ) => void
   removeProjection: (_item: ProjectionItem) => void
-  addProjectionSilent: (_name: string, _projection: VantageProjection, _imagePath: string) => ProjectionItem
+  addProjectionSilent: (
+    _name: string,
+    _projection: VantageProjection,
+    _imagePath: string
+  ) => ProjectionItem
   focusProjection: (_item: ProjectionItem) => void
   enterAimMode: () => void
   exitAimMode: () => void

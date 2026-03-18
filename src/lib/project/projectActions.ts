@@ -1,6 +1,10 @@
 import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
 import { projectState } from '@/lib/project/projectState.svelte.ts'
-import { serializeScene, deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
+import {
+  serializeScene,
+  deserializeScene,
+  deserializeProjections,
+} from '@/lib/project/serializer.ts'
 import { createProjectFS, supportsNativeFS } from '@/lib/project/fileSystem.ts'
 import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 import { createMemoryFS, exportAsZip, downloadBlob } from '@/lib/project/memoryFS.ts'

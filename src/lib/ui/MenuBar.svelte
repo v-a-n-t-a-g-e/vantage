@@ -1,7 +1,12 @@
 <script lang="ts">
   import Logo from '@/assets/icons/Vantage.svg'
   import { projectState } from '@/lib/project/projectState.svelte.ts'
-  import { saveProject, openProject, newProject, openRecentProject } from '@/lib/project/projectActions.ts'
+  import {
+    saveProject,
+    openProject,
+    newProject,
+    openRecentProject,
+  } from '@/lib/project/projectActions.ts'
   import MenuDropdown from './menu/MenuDropdown.svelte'
   import type { MenuItem } from './menu/types.ts'
 
