@@ -16,7 +16,7 @@
   }
 
   function select() {
-    if (sceneState.aimMode) sceneActions.value?.exitAimMode()
+    if (sceneState.tool === 'aim') sceneActions.value?.exitAimMode()
     sceneState.selected = item
   }
 </script>

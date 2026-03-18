@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
-  import type { TransformMode } from '@/lib/sceneState.svelte.ts'
+  import type { Tool } from '@/lib/sceneState.svelte.ts'
   import type { Component } from 'svelte'
 
   import IconTranslate from '@/assets/icons/Translate.svg'
@@ -8,50 +9,76 @@
   import IconScale from '@/assets/icons/Scale.svg'
   import IconAim from '@/assets/icons/Aim.svg'
 
-  type TransformModeItem = { mode: TransformMode; icon: Component }
+  type ToolbarItem = {
+    label: string
+    icon: Component
+    value: Tool
+    hidden?: () => boolean
+    disabled?: () => boolean
+  }
 
-  const modes: TransformModeItem[] = [
-    { mode: 'translate', icon: IconTranslate },
-    { mode: 'rotate', icon: IconRotate },
-    { mode: 'scale', icon: IconScale },
+  const tools: ToolbarItem[] = [
+    {
+      label: 'Translate',
+      icon: IconTranslate,
+      value: 'translate',
+      disabled: () => sceneState.tool === 'aim',
+    },
+    {
+      label: 'Rotate',
+      icon: IconRotate,
+      value: 'rotate',
+      disabled: () => sceneState.tool === 'aim',
+    },
+    {
+      label: 'Scale',
+      icon: IconScale,
+      value: 'scale',
+      hidden: () => sceneState.selected?.kind === 'projection',
+    },
+    {
+      label: 'Aim',
+      icon: IconAim,
+      value: 'aim',
+      hidden: () => sceneState.selected?.kind !== 'projection',
+    },
   ]
+
+  let prevTool: Tool = sceneState.tool
+
+  $effect(() => {
+    const currentTool = sceneState.tool
+    if (currentTool === 'aim' && prevTool !== 'aim') {
+      untrack(() => sceneActions.value?.enterAimMode())
+    }
+    prevTool = currentTool
+  })
 </script>
 
-<div class="ui-container col-start-3 row-start-1 flex justify-self-end">
-  {#if !sceneState.aimMode}
-    {#each modes as { mode, icon } (mode)}
+<div
+  class="ui-container col-start-3 row-start-1 flex justify-self-end"
+  aria-label="Active tool"
+  role="radiogroup"
+>
+  {#each tools as { icon: Icon, ...tool } (tool.label)}
+    {#if !tool.hidden?.()}
       <label
-        class="ui-button cursor-pointer"
-        class:!bg-green={sceneState.transformMode === mode}
-        aria-label={mode}
+        class="ui-button"
+        class:!bg-green={sceneState.tool === tool.value}
+        class:cursor-pointer={!tool.disabled?.()}
+        class:opacity-40={tool.disabled?.()}
       >
         <input
-          type="radio"
-          name="transform-mode"
-          value={mode}
-          bind:group={sceneState.transformMode}
+          name="active-tool"
           class="sr-only"
+          aria-label={tool.label}
+          disabled={tool.disabled?.()}
+          type="radio"
+          value={tool.value}
+          bind:group={sceneState.tool}
         />
-        <svelte:component this={icon} />
+        <Icon />
       </label>
-    {/each}
-  {/if}
-
-  {#if sceneState.selected?.kind === 'projection'}
-    <button
-      class="ui-button cursor-pointer"
-      class:!bg-green={sceneState.aimMode}
-      aria-label="Aim mode"
-      title={sceneState.aimMode ? 'Exit aim mode (Esc)' : 'Enter aim mode'}
-      onclick={() => {
-        if (sceneState.aimMode) {
-          sceneActions.value?.exitAimMode()
-        } else {
-          sceneActions.value?.enterAimMode()
-        }
-      }}
-    >
-      <IconAim />
-    </button>
-  {/if}
+    {/if}
+  {/each}
 </div>

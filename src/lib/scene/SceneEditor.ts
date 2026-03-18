@@ -1,6 +1,11 @@
 import * as THREE from 'three'
-import { sceneState, setSceneActions } from '@/lib/sceneState.svelte.ts'
-import type { SceneObject, SceneObjectSource, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+import { sceneState, setSceneActions, TRANSFORM_TOOLS } from '@/lib/sceneState.svelte.ts'
+import type {
+  SceneObject,
+  SceneObjectSource,
+  ProjectionItem,
+  TransformTool,
+} from '@/lib/sceneState.svelte.ts'
 import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
 import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
@@ -50,7 +55,6 @@ export class SceneEditor {
   private projectionHelper: THREE.CameraHelper | null = null
   private lastSelected: SceneObject | ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
-  private lastMode = sceneState.transformMode
   private animId = 0
   private ro: ResizeObserver
   private canvas: HTMLCanvasElement
@@ -105,7 +109,8 @@ export class SceneEditor {
         })
       },
       removeObject: (item) => {
-        const wasSelected = sceneState.selected?.kind === 'object' && sceneState.selected.object === item.object
+        const wasSelected =
+          sceneState.selected?.kind === 'object' && sceneState.selected.object === item.object
         this.doRemove(item)
         pushCommand({
           undo: () => {
@@ -119,7 +124,7 @@ export class SceneEditor {
         this.rig.focusObject(item.object)
       },
       clearScene: () => {
-        if (sceneState.aimMode) this.exitAimMode()
+        if (sceneState.tool === 'aim') this.exitAimMode()
         for (const item of [...sceneState.objects]) {
           this.scene.remove(item.object)
         }
@@ -147,7 +152,9 @@ export class SceneEditor {
         })
       },
       removeProjection: (item) => {
-        const wasSelected = sceneState.selected?.kind === 'projection' && sceneState.selected.projection === item.projection
+        const wasSelected =
+          sceneState.selected?.kind === 'projection' &&
+          sceneState.selected.projection === item.projection
         this.doRemoveProjection(item)
         pushCommand({
           undo: () => {
@@ -216,7 +223,7 @@ export class SceneEditor {
     })
 
     canvas.addEventListener('pointerup', (e) => {
-      if (sceneState.aimMode) return
+      if (sceneState.tool === 'aim') return
       if (isDragging) return
       if (this.gizmo.axis !== null) return
       sceneState.selected = pick(e.clientX, e.clientY)
@@ -252,7 +259,7 @@ export class SceneEditor {
 
   private enterAimMode() {
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
-    if (!proj || sceneState.aimMode) return
+    if (!proj) return
 
     // Snapshot for undo
     this.aimPositionBefore = proj.projection.position.clone()
@@ -267,16 +274,14 @@ export class SceneEditor {
     this.rig.enabled = false
     this.gizmo.detach()
 
-    sceneState.aimMode = true
     this.aimHeldKeys.clear()
     this.aimIsDragging = false
   }
 
   private exitAimMode() {
-    if (!sceneState.aimMode) return
+    if (sceneState.tool !== 'aim') return
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
 
-    sceneState.aimMode = false
     this.aimHeldKeys.clear()
     this.aimIsDragging = false
 
@@ -306,10 +311,7 @@ export class SceneEditor {
           rotation: proj.projection.rotation.clone(),
         }
         const p = proj.projection
-        if (
-          !before.position.equals(after.position) ||
-          !before.rotation.equals(after.rotation)
-        ) {
+        if (!before.position.equals(after.position) || !before.rotation.equals(after.rotation)) {
           pushCommand({
             undo: () => {
               p.position.copy(before.position)
@@ -345,12 +347,30 @@ export class SceneEditor {
     const pos = this.camera.position
     let moved = false
 
-    if (this.aimHeldKeys.has('KeyW') || this.aimHeldKeys.has('ArrowUp')) { pos.addScaledVector(_forward, speed); moved = true }
-    if (this.aimHeldKeys.has('KeyS') || this.aimHeldKeys.has('ArrowDown')) { pos.addScaledVector(_forward, -speed); moved = true }
-    if (this.aimHeldKeys.has('KeyA') || this.aimHeldKeys.has('ArrowLeft')) { pos.addScaledVector(_right, -speed); moved = true }
-    if (this.aimHeldKeys.has('KeyD') || this.aimHeldKeys.has('ArrowRight')) { pos.addScaledVector(_right, speed); moved = true }
-    if (this.aimHeldKeys.has('KeyR')) { pos.y += speed; moved = true }
-    if (this.aimHeldKeys.has('KeyF')) { pos.y -= speed; moved = true }
+    if (this.aimHeldKeys.has('KeyW') || this.aimHeldKeys.has('ArrowUp')) {
+      pos.addScaledVector(_forward, speed)
+      moved = true
+    }
+    if (this.aimHeldKeys.has('KeyS') || this.aimHeldKeys.has('ArrowDown')) {
+      pos.addScaledVector(_forward, -speed)
+      moved = true
+    }
+    if (this.aimHeldKeys.has('KeyA') || this.aimHeldKeys.has('ArrowLeft')) {
+      pos.addScaledVector(_right, -speed)
+      moved = true
+    }
+    if (this.aimHeldKeys.has('KeyD') || this.aimHeldKeys.has('ArrowRight')) {
+      pos.addScaledVector(_right, speed)
+      moved = true
+    }
+    if (this.aimHeldKeys.has('KeyR')) {
+      pos.y += speed
+      moved = true
+    }
+    if (this.aimHeldKeys.has('KeyF')) {
+      pos.y -= speed
+      moved = true
+    }
 
     if (moved) {
       proj.projection.position.copy(pos)
@@ -360,13 +380,13 @@ export class SceneEditor {
   }
 
   private onAimMouseDown = (event: MouseEvent) => {
-    if (!sceneState.aimMode) return
+    if (sceneState.tool !== 'aim') return
     this.aimIsDragging = true
     this.aimDragLast = { x: event.clientX, y: event.clientY }
   }
 
   private onAimMouseMove = (event: MouseEvent) => {
-    if (!sceneState.aimMode || !this.aimIsDragging) return
+    if (sceneState.tool !== 'aim' || !this.aimIsDragging) return
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
     if (!proj) return
 
@@ -390,10 +410,10 @@ export class SceneEditor {
   }
 
   private onAimKeydown = (event: KeyboardEvent) => {
-    if (sceneState.aimMode) {
+    if (sceneState.tool === 'aim') {
       this.aimHeldKeys.add(event.code)
     }
-    if (event.code === 'Escape' && sceneState.aimMode) {
+    if (event.code === 'Escape' && sceneState.tool === 'aim') {
       this.exitAimMode()
     }
   }
@@ -512,8 +532,10 @@ export class SceneEditor {
   }
 
   private doRemoveProjection(item: ProjectionItem) {
-    const isSelected = sceneState.selected?.kind === 'projection' && sceneState.selected.projection === item.projection
-    if (sceneState.aimMode && isSelected) {
+    const isSelected =
+      sceneState.selected?.kind === 'projection' &&
+      sceneState.selected.projection === item.projection
+    if (sceneState.tool === 'aim' && isSelected) {
       this.exitAimMode()
     }
 
@@ -583,7 +605,7 @@ export class SceneEditor {
     this.animId = requestAnimationFrame(() => this.animate())
     const deltaMs = this.clock.getDelta() * 1000
 
-    if (sceneState.aimMode) {
+    if (sceneState.tool === 'aim') {
       this.updateAimMovement(deltaMs)
     } else {
       this.rig.tick()
@@ -603,7 +625,7 @@ export class SceneEditor {
       if (this.lastSelected?.kind === 'object') {
         this.gizmo.attach(this.lastSelected.object)
       } else if (this.lastSelected?.kind === 'projection') {
-        if (!sceneState.aimMode) this.gizmo.attach(this.lastSelected.projection)
+        if (sceneState.tool !== 'aim') this.gizmo.attach(this.lastSelected.projection)
         this.projectionHelper = new THREE.CameraHelper(this.lastSelected.projection)
         this.scene.add(this.projectionHelper)
       } else {
@@ -614,10 +636,9 @@ export class SceneEditor {
     // Update projection helper if it exists
     if (this.projectionHelper) this.projectionHelper.update()
 
-    // Transform mode changes
-    if (sceneState.transformMode !== this.lastMode) {
-      this.lastMode = sceneState.transformMode
-      this.gizmo.setMode(this.lastMode)
+    // Transform tool changes
+    if (TRANSFORM_TOOLS.includes(sceneState.tool as TransformTool)) {
+      this.gizmo.setMode(sceneState.tool as TransformTool)
     }
 
     // Hover highlight
@@ -658,7 +679,7 @@ export class SceneEditor {
   }
 
   dispose() {
-    if (sceneState.aimMode) this.exitAimMode()
+    if (sceneState.tool === 'aim') this.exitAimMode()
     setSceneActions(null)
     cancelAnimationFrame(this.animId)
     this.ro.disconnect()
