@@ -33,6 +33,7 @@
         <button
           style="anchor-name: {anchorName}-{i}"
           class="ui-button w-full items-center justify-between gap-4"
+          class:bg-gray-200={activeIndex === i}
           class:cursor-pointer={!item.disabled}
           class:opacity-40={item.disabled}
           disabled={item.disabled}
@@ -72,7 +73,6 @@
   @reference "@/app.css";
 
   .dropdown {
-    position: fixed;
     top: anchor(bottom);
     left: anchor(left);
     position-try-fallbacks: --dropdown-above, --dropdown-right, --dropdown-above-right;
@@ -98,7 +98,6 @@
   }
 
   .submenu {
-    position: fixed;
     top: anchor(top);
     left: anchor(right);
     margin-top: -1px;
