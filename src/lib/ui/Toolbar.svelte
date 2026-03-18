@@ -4,6 +4,7 @@
   import type { Tool } from '@/lib/sceneState.svelte.ts'
   import type { Component } from 'svelte'
 
+  import IconCursor from '@/assets/icons/Cursor.svg'
   import IconTranslate from '@/assets/icons/Translate.svg'
   import IconRotate from '@/assets/icons/Rotate.svg'
   import IconScale from '@/assets/icons/Scale.svg'
@@ -18,6 +19,12 @@
   }
 
   const tools: ToolbarItem[] = [
+    {
+      label: 'Cursor',
+      icon: IconCursor,
+      value: 'cursor',
+      disabled: () => sceneState.tool === 'aim',
+    },
     {
       label: 'Translate',
       icon: IconTranslate,

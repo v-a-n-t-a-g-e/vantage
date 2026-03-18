@@ -2,7 +2,7 @@ import type { Object3D } from 'three'
 import type { VantageProjection } from 'vantage-renderer'
 
 export type TransformTool = 'translate' | 'rotate' | 'scale'
-export type Tool = TransformTool | 'aim'
+export type Tool = 'cursor' | TransformTool | 'aim'
 export const TRANSFORM_TOOLS: TransformTool[] = ['translate', 'rotate', 'scale']
 
 export type SceneObjectSource =
@@ -65,7 +65,7 @@ export const sceneState: SceneState = $state({
   projections: [],
   selected: null,
   hovered: null,
-  tool: 'translate',
+  tool: 'cursor',
   transformRevision: 0,
 })
 
