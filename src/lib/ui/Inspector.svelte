@@ -15,6 +15,7 @@
 
   // VantageProjection props aren't Svelte-reactive, so mirror them into state
   let cam = $state({ fov: 60, near: 1, far: 200 })
+  let projectionPlaneVisible = $state(true)
 
   $effect(() => {
     if (sel?.kind !== 'projection') return
@@ -22,6 +23,7 @@
     cam.fov = p.fov
     cam.near = p.near
     cam.far = p.far
+    projectionPlaneVisible = p.projectionPlane?.visible ?? true
   })
 
   function camHandler(key: 'fov' | 'near' | 'far') {
@@ -109,6 +111,19 @@
           </div>
         </div>
       </div>
+      <label class="ui-button w-full gap-3">
+        <input
+          checked={projectionPlaneVisible}
+          onchange={(e) => {
+            const p = (sel as ProjectionItem).projection
+            if (!p.projectionPlane) return
+            projectionPlaneVisible = (e.target as HTMLInputElement).checked
+            p.projectionPlane.visible = projectionPlaneVisible
+          }}
+          type="checkbox"
+        />
+        Projection Plane
+      </label>
     {/if}
 
     <button
