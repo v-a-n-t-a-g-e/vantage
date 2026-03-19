@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte'
-  import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
+  import { sceneState } from '@/lib/sceneState.svelte.ts'
   import type { Tool } from '@/lib/sceneState.svelte.ts'
   import type { Component } from 'svelte'
 
@@ -59,13 +59,6 @@
     }
   })
 
-  function changeTool() {
-    if (sceneState.tool === 'aim') {
-      sceneActions.value?.enterAimMode()
-    } else {
-      sceneActions.value?.exitAimMode()
-    }
-  }
 </script>
 
 <div
@@ -80,7 +73,6 @@
           name="active-tool"
           class="sr-only"
           aria-label={tool.label}
-          onchange={changeTool}
           type="radio"
           value={tool.value}
           bind:group={sceneState.tool}

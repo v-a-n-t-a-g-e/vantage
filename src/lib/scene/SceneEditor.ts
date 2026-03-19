@@ -5,6 +5,7 @@ import type {
   SceneObjectSource,
   ProjectionItem,
   TransformTool,
+  Tool,
 } from '@/lib/sceneState.svelte.ts'
 import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
@@ -56,6 +57,7 @@ export class SceneEditor {
   private projectionHelper: THREE.CameraHelper | null = null
   private lastSelected: SceneObject | ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
+  private lastTool: Tool = 'cursor'
   private animId = 0
   private ro: ResizeObserver
   private canvas: HTMLCanvasElement
@@ -68,6 +70,8 @@ export class SceneEditor {
   private aimDragLast = { x: 0, y: 0 }
   private aimPositionBefore: THREE.Vector3 | null = null
   private aimRotationBefore: THREE.Euler | null = null
+  private aimOrbitPositionBefore: THREE.Vector3 | null = null
+  private aimOrbitTargetBefore: THREE.Vector3 | null = null
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -263,10 +267,15 @@ export class SceneEditor {
   private enterAimMode() {
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
     if (!proj) return
+    this.lastTool = 'aim'
 
     // Snapshot for undo
     this.aimPositionBefore = proj.projection.position.clone()
     this.aimRotationBefore = proj.projection.rotation.clone()
+
+    // Save orbit state so we can restore it on exit
+    this.aimOrbitPositionBefore = this.camera.position.clone()
+    this.aimOrbitTargetBefore = this.rig.target.clone()
 
     // Sync orbit camera to projection viewpoint
     this.camera.position.copy(proj.projection.getWorldPosition(new THREE.Vector3()))
@@ -283,21 +292,23 @@ export class SceneEditor {
 
   private exitAimMode() {
     if (sceneState.tool === 'aim') sceneState.tool = 'cursor'
+    this.lastTool = sceneState.tool
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
 
     this.aimHeldKeys.clear()
     this.aimIsDragging = false
 
-    // Re-enable orbit controls
+    // Re-enable orbit controls and restore pre-aim camera position/target
     this.rig.enabled = true
-
-    // Point orbit target in front of current camera position
-    this.camera.getWorldDirection(_forward)
-    this.rig.target.copy(this.camera.position).addScaledVector(_forward, 10)
-    // Force orbit controls to sync without damping snap
-    this.rig.enableDamping = false
-    this.rig.update()
-    this.rig.enableDamping = true
+    if (this.aimOrbitPositionBefore && this.aimOrbitTargetBefore) {
+      this.camera.position.copy(this.aimOrbitPositionBefore)
+      this.rig.target.copy(this.aimOrbitTargetBefore)
+      this.rig.enableDamping = false
+      this.rig.update()
+      this.rig.enableDamping = true
+    }
+    this.aimOrbitPositionBefore = null
+    this.aimOrbitTargetBefore = null
 
     // Re-attach gizmo
     if (proj) {
@@ -606,7 +617,19 @@ export class SceneEditor {
 
   private animate() {
     this.animId = requestAnimationFrame(() => this.animate())
+    this.clock.update()
     const deltaMs = this.clock.getDelta() * 1000
+
+    // Tool transitions
+    if (sceneState.tool !== this.lastTool) {
+      const prev = this.lastTool
+      this.lastTool = sceneState.tool
+      if (sceneState.tool === 'aim') {
+        this.enterAimMode()
+      } else if (prev === 'aim') {
+        this.exitAimMode()
+      }
+    }
 
     if (sceneState.tool === 'aim') {
       this.updateAimMovement(deltaMs)
