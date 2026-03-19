@@ -13,32 +13,7 @@ import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'
 import { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { themeColors } from '@/lib/scene/themeColors.ts'
-import { VantageProjection, loadTexture } from 'vantage-renderer'
-
-/**
- * VantageProjection._applyMaterial wraps mesh.material into an array [mat]
- * and adds a projection group at materialIndex = material.length.
- * This breaks meshes whose groups reference materialIndex > 0 while using a
- * single material (e.g. BoxGeometry has groups with materialIndex 0-5).
- * After wrapping, only index 0 is valid — indices 1-5 become undefined.
- *
- * Fix: before projecting, collapse all single-material groups to materialIndex 0.
- */
-function normalizeGroupsForProjection(object: THREE.Object3D) {
-  object.traverse((child) => {
-    if (!(child as THREE.Mesh).isMesh) return
-    const mesh = child as THREE.Mesh
-    if (Array.isArray(mesh.material) || mesh.geometry.groups.length === 0) return
-
-    // Single material but groups with varying materialIndex → remap to 0
-    const needsRemap = mesh.geometry.groups.some((g) => g.materialIndex !== 0)
-    if (needsRemap) {
-      for (const g of mesh.geometry.groups) {
-        g.materialIndex = 0
-      }
-    }
-  })
-}
+import { VantageProjection, loadTexture } from '@/lib/scene/projection'
 
 // Reused vectors for aim mode
 const _forward = new THREE.Vector3()
@@ -516,11 +491,8 @@ export class SceneEditor {
     sceneState.objects = [...sceneState.objects, item]
 
     // Apply all visible projections to the new object
-    if (sceneState.projections.length > 0) {
-      normalizeGroupsForProjection(obj)
-      for (const p of sceneState.projections) {
-        if (p.visible) p.projection.project(obj)
-      }
+    for (const p of sceneState.projections) {
+      if (p.visible) p.projection.project(obj)
     }
 
     return item
@@ -563,10 +535,9 @@ export class SceneEditor {
 
     this.scene.add(projection)
 
-    // Normalize geometry groups and project onto all visible scene objects
+    // Project onto all visible scene objects
     for (const obj of sceneState.objects) {
       if (obj.visible) {
-        normalizeGroupsForProjection(obj.object)
         projection.project(obj.object)
       }
     }

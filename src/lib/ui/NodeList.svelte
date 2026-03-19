@@ -3,7 +3,7 @@
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
   import { loadGLTF } from '@/lib/gltfLoader.ts'
-  import { VantageProjection, loadTexture } from 'vantage-renderer'
+  import { VantageProjection, loadTexture } from '@/lib/scene/projection'
   import Add from '@/assets/icons/Add.svg'
 
   let modelInput: HTMLInputElement

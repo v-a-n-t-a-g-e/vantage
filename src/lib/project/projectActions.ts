@@ -278,9 +278,7 @@ interface ExampleProject {
   basePath: string
 }
 
-export const exampleProjects: ExampleProject[] = [
-  { label: 'Demo', basePath: '/demo' },
-]
+export const exampleProjects: ExampleProject[] = [{ label: 'Demo', basePath: '/demo' }]
 
 export async function loadDemoProject(basePath = '/demo') {
   await loadExampleFromUrl(basePath)

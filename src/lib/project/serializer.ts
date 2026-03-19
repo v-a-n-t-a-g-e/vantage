@@ -1,7 +1,7 @@
 import type { SceneObject, SceneObjectSource, ProjectionItem } from '@/lib/sceneState.svelte.ts'
 import type { SceneManifest, SceneObjectEntry, ProjectionEntry } from '@/lib/project/types.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
-import { VantageProjection, loadTexture } from 'vantage-renderer'
+import { VantageProjection, loadTexture } from '@/lib/scene/projection'
 import * as THREE from 'three'
 
 export function serializeScene(
