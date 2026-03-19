@@ -15,6 +15,7 @@ export type SceneObject = {
   name: string
   object: Object3D
   visible: boolean
+  locked: boolean
   source: SceneObjectSource
 }
 
@@ -24,6 +25,7 @@ export type ProjectionItem = {
   name: string
   projection: VantageProjection
   visible: boolean
+  locked: boolean
   imageBlob?: Blob
   imagePath: string
 }

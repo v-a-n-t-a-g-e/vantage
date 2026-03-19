@@ -9,6 +9,23 @@
   let modelInput: HTMLInputElement
   let imageInput: HTMLInputElement
 
+  let altPressed = $state(false)
+
+  $effect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'Alt') altPressed = true
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.key === 'Alt') altPressed = false
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  })
+
   // Drag-and-drop state
   let dragList: 'projections' | 'objects' | null = $state(null)
   let dragIndex: number | null = $state(null)
@@ -153,12 +170,16 @@
     <div class="flex flex-col-reverse">
       {#each sceneState.projections as item, index (item.id)}
         <NodeListItem
+          {altPressed}
           dropPosition={getDropPosition('projections', index)}
           {item}
           ondragend={handleDragEnd}
           ondragover={(e) => handleDragOver('projections', index, e)}
           ondragstart={(e) => handleDragStart('projections', index, e)}
           ondrop={(e) => handleDrop('projections', index, e)}
+          onlock={(i) => {
+            i.locked = !i.locked
+          }}
           ontoggle={(i) => {
             if (i.kind === 'projection') {
               i.visible = !i.visible
@@ -215,12 +236,16 @@
     <div class="flex flex-col-reverse">
       {#each sceneState.objects as item, index (item.id)}
         <NodeListItem
+          {altPressed}
           dropPosition={getDropPosition('objects', index)}
           {item}
           ondragend={handleDragEnd}
           ondragover={(e) => handleDragOver('objects', index, e)}
           ondragstart={(e) => handleDragStart('objects', index, e)}
           ondrop={(e) => handleDrop('objects', index, e)}
+          onlock={(i) => {
+            i.locked = !i.locked
+          }}
           ontoggle={(i) => {
             if (i.kind === 'object') {
               i.object.visible = !i.object.visible

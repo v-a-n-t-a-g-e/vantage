@@ -187,7 +187,7 @@ export class SceneEditor {
     let pointerDownPos = { x: 0, y: 0 }
     let isDragging = false
 
-    const pick = (clientX: number, clientY: number): SceneObject | null => {
+    const pick = (clientX: number, clientY: number): SceneObject | ProjectionItem | null => {
       const rect = canvas.getBoundingClientRect()
       raycaster.setFromCamera(
         new THREE.Vector2(
@@ -196,22 +196,59 @@ export class SceneEditor {
         ),
         this.camera
       )
-      const targets: THREE.Object3D[] = []
+
+      // Collect unlocked scene object targets
+      const objTargets: THREE.Object3D[] = []
       for (const item of sceneState.objects) {
-        item.object.traverse((child) => targets.push(child))
+        if (!item.locked) item.object.traverse((child) => objTargets.push(child))
       }
-      const hits = raycaster.intersectObjects(targets, false)
-      if (hits.length === 0) return null
-      return (
-        sceneState.objects.find((item) => {
-          let node: THREE.Object3D | null = hits[0].object
-          while (node) {
-            if (node === item.object) return true
-            node = node.parent
-          }
-          return false
-        }) ?? null
-      )
+
+      // Collect unlocked, visible projection plane targets
+      const projPlaneTargets: THREE.Object3D[] = []
+      for (const item of sceneState.projections) {
+        const plane = (item.projection as unknown as { projectionPlane: THREE.Mesh | null })
+          .projectionPlane
+        if (!item.locked && item.visible && plane?.visible) {
+          projPlaneTargets.push(plane)
+        }
+      }
+
+      const objHits = raycaster.intersectObjects(objTargets, false)
+      const projHits = raycaster.intersectObjects(projPlaneTargets, false)
+
+      // Filter projection hits to front face only (texture side)
+      const frontProjHits = projHits.filter((hit) => {
+        if (!hit.face) return false
+        const worldNormal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
+        return worldNormal.dot(raycaster.ray.direction) < 0
+      })
+
+      const closestObj = objHits[0] ?? null
+      const closestProj = frontProjHits[0] ?? null
+
+      if (!closestObj && !closestProj) return null
+
+      // Pick whichever is closer; prefer objects on equal distance
+      if (closestObj && (!closestProj || closestObj.distance <= closestProj.distance)) {
+        return (
+          sceneState.objects.find((item) => {
+            let node: THREE.Object3D | null = closestObj.object
+            while (node) {
+              if (node === item.object) return true
+              node = node.parent
+            }
+            return false
+          }) ?? null
+        )
+      } else {
+        return (
+          sceneState.projections.find(
+            (item) =>
+              (item.projection as unknown as { projectionPlane: THREE.Mesh | null })
+                .projectionPlane === closestProj!.object
+          ) ?? null
+        )
+      }
     }
 
     canvas.addEventListener('pointerdown', (e) => {
@@ -452,6 +489,7 @@ export class SceneEditor {
         name: box.name,
         object: box,
         visible: box.visible,
+        locked: false,
         source: { kind: 'primitive', geometryType: 'box' },
       },
     ]
@@ -472,6 +510,7 @@ export class SceneEditor {
       name: uniqueName,
       object: obj,
       visible: true,
+      locked: false,
       source,
     }
     sceneState.objects = [...sceneState.objects, item]
@@ -538,6 +577,7 @@ export class SceneEditor {
       name: uniqueName,
       projection,
       visible: true,
+      locked: false,
       imageBlob,
       imagePath,
     }

@@ -2,10 +2,13 @@
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
+  import IconLock from '@/assets/icons/Lock.svg'
 
   interface Props {
     item: SceneObject | ProjectionItem
+    altPressed: boolean
     ontoggle: (_item: SceneObject | ProjectionItem) => void
+    onlock: (_item: SceneObject | ProjectionItem) => void
     ondragstart?: (_e: DragEvent) => void
     ondragover?: (_e: DragEvent) => void
     ondrop?: (_e: DragEvent) => void
@@ -13,11 +16,31 @@
     dropPosition?: 'above' | 'below' | null
   }
 
-  let { item, ontoggle, ondragstart, ondragover, ondrop, ondragend, dropPosition }: Props = $props()
+  let {
+    item,
+    altPressed,
+    ontoggle,
+    onlock,
+    ondragstart,
+    ondragover,
+    ondrop,
+    ondragend,
+    dropPosition,
+  }: Props = $props()
 
-  function toggleVisibility(e: MouseEvent) {
+  // Show lock icon when: locked+visible, OR unlocked+visible+alt
+  // Show hide icon when: hidden (any lock state), OR unlocked+visible+no-alt
+  const showLockIcon = $derived(
+    (item.locked && item.visible) || (!item.locked && item.visible && altPressed)
+  )
+
+  // Button is always visible (not just on hover) when item has a non-default state
+  const alwaysVisible = $derived(item.locked || !item.visible)
+
+  function handleToggle(e: MouseEvent) {
     e.stopPropagation()
-    ontoggle(item)
+    if (showLockIcon) onlock(item)
+    else ontoggle(item)
   }
 
   function select() {
@@ -63,13 +86,18 @@
   </div>
 
   <button
-    class="-mx-1.5 ml-auto h-10 px-1.5
-           opacity-0 group-hover:opacity-40 hover:opacity-100!"
-    class:!opacity-40={!item.visible}
-    aria-label="Toggle visibility"
-    onclick={toggleVisibility}
+    class="-mx-1.5 ml-auto h-10 px-1.5 hover:opacity-100!"
+    class:group-hover:opacity-40={!alwaysVisible}
+    class:opacity-0={!alwaysVisible}
+    class:opacity-40={alwaysVisible}
+    aria-label={showLockIcon ? 'Toggle lock' : 'Toggle visibility'}
+    onclick={handleToggle}
     tabindex="-1"
   >
-    <IconHide />
+    {#if showLockIcon}
+      <IconLock />
+    {:else}
+      <IconHide />
+    {/if}
   </button>
 </div>

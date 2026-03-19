@@ -9,6 +9,8 @@
     exampleProjects,
     loadDemoProject,
   } from '@/lib/project/projectActions.ts'
+  import { toggleSelectedVisibility, toggleSelectedLock } from '@/lib/editActions.ts'
+  import { sceneState } from '@/lib/sceneState.svelte.ts'
   import MenuDropdown from './menu/MenuDropdown.svelte'
   import type { MenuItem } from './menu/types.ts'
 
@@ -39,8 +41,24 @@
     { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
   ])
 
+  const editOptions = $derived<MenuItem[]>([
+    {
+      label: sceneState.selected?.visible === false ? 'Show' : 'Hide',
+      shortcut: 'Cmd+H',
+      disabled: sceneState.selected === null,
+      action: toggleSelectedVisibility,
+    },
+    {
+      label: sceneState.selected?.locked ? 'Unlock' : 'Lock',
+      shortcut: 'Cmd+L',
+      disabled: sceneState.selected === null,
+      action: toggleSelectedLock,
+    },
+  ])
+
   const menus = $derived<{ label: string; options: MenuItem[] }[]>([
     { label: 'File', options: fileOptions },
+    { label: 'Edit', options: editOptions },
     { label: 'View', options: [] },
   ])
 </script>

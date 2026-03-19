@@ -23,7 +23,9 @@
     cam.fov = p.fov
     cam.near = p.near
     cam.far = p.far
-    projectionPlaneVisible = p.projectionPlane?.visible ?? true
+    projectionPlaneVisible =
+      (p as unknown as { projectionPlane: { visible: boolean } | null }).projectionPlane?.visible ??
+      true
   })
 
   function camHandler(key: 'fov' | 'near' | 'far') {
@@ -116,9 +118,11 @@
           checked={projectionPlaneVisible}
           onchange={(e) => {
             const p = (sel as ProjectionItem).projection
-            if (!p.projectionPlane) return
+            const plane = (p as unknown as { projectionPlane: { visible: boolean } | null })
+              .projectionPlane
+            if (!plane) return
             projectionPlaneVisible = (e.target as HTMLInputElement).checked
-            p.projectionPlane.visible = projectionPlaneVisible
+            plane.visible = projectionPlaneVisible
           }}
           type="checkbox"
         />

@@ -5,6 +5,7 @@
   import { undo, redo } from '@/lib/history.svelte.ts'
   import { sceneState } from '@/lib/sceneState.svelte.ts'
   import { registerShortcuts } from '@/lib/shortcuts.ts'
+  import { toggleSelectedVisibility, toggleSelectedLock } from '@/lib/editActions.ts'
   import { projectState } from '@/lib/project/projectState.svelte.ts'
   import {
     saveProject,
@@ -46,6 +47,8 @@
           newProject()
         },
       },
+      { key: 'h', meta: true, action: toggleSelectedVisibility },
+      { key: 'l', meta: true, action: toggleSelectedLock },
     ])
 
     loadRecentProjects().then(() => autoLoadLastProject())
