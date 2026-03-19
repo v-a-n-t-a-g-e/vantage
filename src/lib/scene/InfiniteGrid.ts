@@ -51,11 +51,29 @@ export class InfiniteGrid extends THREE.Mesh {
 
         varying vec3 vWorldPos;
 
-        float gridLine(float scale) {
+        float grid(float scale) {
           vec2 r = vWorldPos.xz / scale;
+
+          // grid lines
           vec2 grid = abs(fract(r - 0.5) - 0.5) / fwidth(r);
           float line = min(grid.x, grid.y);
           return 1.0 - min(line, 1.0);
+          
+          // grid cross
+          // // Distance to nearest line in each axis (in pixel units)
+          // vec2 d = abs(fract(r - 0.5) - 0.5);
+          // vec2 fw = fwidth(r);
+          // vec2 grid = d / fw;
+          // // Anti-aliased line presence per axis (1 = on line, 0 = off)
+          // float onLineX = 1.0 - min(grid.x, 1.0);
+          // float onLineY = 1.0 - min(grid.y, 1.0);
+          // // Proximity to perpendicular line (arm length = 05% of cell)
+          // float nearLineY = 1.0 - smoothstep(0.0, 0.05, d.y);
+          // float nearLineX = 1.0 - smoothstep(0.0, 0.05, d.x);
+          // // Cross: X-line arm near Y-intersections + Y-line arm near X-intersections
+          // float crossX = onLineX * nearLineY;
+          // float crossY = onLineY * nearLineX;
+          // return max(crossX, crossY);
         }
 
         void main() {
@@ -71,10 +89,10 @@ export class InfiniteGrid extends THREE.Mesh {
           float minorB = pow(10.0, levelFloor + 1.0);
           float majorB = pow(10.0, levelFloor + 2.0);
 
-          float gMinorA = gridLine(minorA);
-          float gMajorA = gridLine(majorA);
-          float gMinorB = gridLine(minorB);
-          float gMajorB = gridLine(majorB);
+          float gMinorA = grid(minorA);
+          float gMajorA = grid(majorA);
+          float gMinorB = grid(minorB);
+          float gMajorB = grid(majorB);
 
           float lineA = gMinorA * 0.15 + gMajorA * 0.4;
           float lineB = gMinorB * 0.15 + gMajorB * 0.4;
