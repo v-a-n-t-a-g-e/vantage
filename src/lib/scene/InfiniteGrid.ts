@@ -1,15 +1,20 @@
 import * as THREE from 'three'
 
 /**
- * Shader-based infinite grid on the XZ plane.
+ * Shader-based infinite grid on the XZ plane with adaptive LOD.
  *
- * Uses a full-screen triangle and reconstructs world-space positions
- * by intersecting view rays with the Y = 0 plane in the fragment shader.
+ * Grid spacing scales with camera distance from the origin:
+ *   close:  0.1 / 1 unit lines
+ *   mid:    1 / 10
+ *   far:    10 / 100
+ *   etc.
+ *
+ * Two adjacent LOD levels are always blended so the transition
+ * between scales is seamless. Fade distance also scales with
+ * camera distance so the grid is always visible.
  */
 export class InfiniteGrid extends THREE.Mesh {
   constructor() {
-    // Full-screen triangle (3 verts in NDC, covers entire viewport)
-    // Using 3-component positions so Three.js boundingSphere doesn't NaN
     const geometry = new THREE.BufferGeometry()
     const vertices = new Float32Array([
       -1, -1, 0,
@@ -25,17 +30,10 @@ export class InfiniteGrid extends THREE.Mesh {
       depthTest: true,
 
       uniforms: {
-        uScale1: { value: 10.0 },
-        uScale2: { value: 100.0 },
-        uFade: { value: 2000.0 },
         uColor: { value: new THREE.Color(0.45, 0.45, 0.45) },
         uViewProj: { value: new THREE.Matrix4() },
         uCamPos: { value: new THREE.Vector3() },
       },
-
-      // NOTE: projectionMatrix / viewMatrix / cameraPosition are only
-      // auto-injected into the VERTEX shader, not fragment.
-      // We pass a combined uViewProj + uCamPos uniform for the fragment.
 
       vertexShader: /* glsl */ `
         varying vec3 vNearPoint;
@@ -57,9 +55,6 @@ export class InfiniteGrid extends THREE.Mesh {
       `,
 
       fragmentShader: /* glsl */ `
-        uniform float uScale1;
-        uniform float uScale2;
-        uniform float uFade;
         uniform vec3 uColor;
         uniform mat4 uViewProj;
         uniform vec3 uCamPos;
@@ -82,27 +77,52 @@ export class InfiniteGrid extends THREE.Mesh {
         void main() {
           // Ray-plane intersection: find t where ray hits Y = 0
           float t = -vNearPoint.y / (vFarPoint.y - vNearPoint.y);
-
-          // Discard fragments above/behind the horizon
           if (t < 0.0 || t > 1.0) discard;
 
           vec3 worldPos = vNearPoint + t * (vFarPoint - vNearPoint);
 
-          // Grid lines at two scales
-          float g1 = gridLine(worldPos.xz, uScale1);
-          float g2 = gridLine(worldPos.xz, uScale2);
+          // Camera distance from origin drives LOD
+          float camDist = length(uCamPos);
+          // Clamp to a minimum so we don't get degenerate scales at origin
+          camDist = max(camDist, 1.0);
 
-          // Light lines (minor), darker lines (major)
-          float line = g1 * 0.15 + g2 * 0.4;
+          // Compute the current LOD level (log10 of distance)
+          // Each LOD level is a power of 10: 0.1, 1, 10, 100, ...
+          float logDist = log2(camDist) / log2(10.0);
+          // Shift so the transition happens at sensible distances
+          // At distance ~3 we see 0.1/1, at ~30 we see 1/10, at ~300 we see 10/100
+          float level = logDist - 0.5;
+          float levelFloor = floor(level);
+          float levelFract = level - levelFloor;
 
-          // Distance fade
+          // Two adjacent LOD scales (minor / major)
+          // Each LOD: minor = 10^levelFloor, major = 10^(levelFloor+1)
+          float minorA = pow(10.0, levelFloor);
+          float majorA = pow(10.0, levelFloor + 1.0);
+          float minorB = pow(10.0, levelFloor + 1.0);
+          float majorB = pow(10.0, levelFloor + 2.0);
+
+          // Grid lines for both LOD levels
+          float gMinorA = gridLine(worldPos.xz, minorA);
+          float gMajorA = gridLine(worldPos.xz, majorA);
+          float gMinorB = gridLine(worldPos.xz, minorB);
+          float gMajorB = gridLine(worldPos.xz, majorB);
+
+          // Compose each level: light minor + darker major
+          float lineA = gMinorA * 0.15 + gMajorA * 0.4;
+          float lineB = gMinorB * 0.15 + gMajorB * 0.4;
+
+          // Cross-fade: fade out level A's minor lines, fade in level B
+          float line = mix(lineA, lineB, levelFract);
+
+          // Distance-adaptive fade: scales with camera distance
+          float fadeRadius = camDist * 6.0;
           float dist = length(worldPos - uCamPos);
-          float fade = 1.0 - smoothstep(uFade * 0.3, uFade, dist);
+          float fade = 1.0 - smoothstep(fadeRadius * 0.4, fadeRadius, dist);
 
           float alpha = line * fade;
           if (alpha < 0.001) discard;
 
-          // Write proper depth so the grid is occluded by scene objects
           gl_FragDepth = computeDepth(worldPos);
           gl_FragColor = vec4(uColor, alpha);
         }
@@ -114,7 +134,7 @@ export class InfiniteGrid extends THREE.Mesh {
     this.renderOrder = -1
   }
 
-  /** Call each frame to sync the view-projection matrix uniform. */
+  /** Call each frame to sync uniforms. */
   update(camera: THREE.Camera) {
     const mat = this.material as THREE.ShaderMaterial
     mat.uniforms.uViewProj.value
