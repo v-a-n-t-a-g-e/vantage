@@ -59,7 +59,7 @@ export class SceneEditor {
   private animId = 0
   private ro: ResizeObserver
   private canvas: HTMLCanvasElement
-  private clock = new THREE.Clock()
+  private clock = new THREE.Timer()
   private env: DefaultEnvironment
 
   // Aim mode state
