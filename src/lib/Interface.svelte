@@ -3,6 +3,7 @@
   import Toolbar from '@/lib/ui/Toolbar.svelte'
   import NodeList from '@/lib/ui/NodeList.svelte'
   import Inspector from '@/lib/ui/Inspector.svelte'
+  import ConfigBar from '@/lib/ui/ConfigBar.svelte'
   import { sceneState } from '@/lib/sceneState.svelte.ts'
 </script>
 
@@ -17,3 +18,5 @@
     <Inspector />
   {/if}
 </div>
+
+<ConfigBar />

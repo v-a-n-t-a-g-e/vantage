@@ -60,6 +60,7 @@ export class SceneEditor {
   private ro: ResizeObserver
   private canvas: HTMLCanvasElement
   private clock = new THREE.Clock()
+  private env: DefaultEnvironment
 
   // Aim mode state
   private aimHeldKeys = new Set<string>()
@@ -96,7 +97,8 @@ export class SceneEditor {
     this.scene.add(this.gizmo.getHelper())
 
     // Default scene content
-    this.scene.add(new DefaultEnvironment())
+    this.env = new DefaultEnvironment()
+    this.scene.add(this.env)
 
     this.addDefaultBox()
 
@@ -711,6 +713,11 @@ export class SceneEditor {
     if (this.projectionHelper) this.projectionHelper.visible = helperWasVisible
     if (this.hoverHelper) this.hoverHelper.visible = hoverWasVisible
     if (this.selectionHelper) this.selectionHelper.visible = selectionWasVisible
+
+    // Sync grid visibility and clear color from state
+    this.env.grid.visible = sceneState.showGrid
+    if (this.env.grid.visible) this.env.grid.update(this.camera)
+    this.renderer.setClearColor(sceneState.clearColor)
 
     this.renderer.render(this.scene, this.camera)
   }
