@@ -58,6 +58,8 @@ type SceneState = {
   hovered: SceneObject | null
   tool: Tool
   transformRevision: number
+  showGrid: boolean
+  clearColor: string
 }
 
 export const sceneState: SceneState = $state({
@@ -67,6 +69,8 @@ export const sceneState: SceneState = $state({
   hovered: null,
   tool: 'translate',
   transformRevision: 0,
+  showGrid: true,
+  clearColor: '#f3e7fd',
 })
 
 let _sceneActions: SceneActions | null = $state(null)
