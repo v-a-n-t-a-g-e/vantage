@@ -291,6 +291,9 @@ interface ExampleProject {
 export const exampleProjects: ExampleProject[] = [{ label: 'Demo', basePath: './demo' }]
 
 export async function loadDemoProject(basePath = './demo') {
+  if (projectState.dirty) {
+    if (!confirm('You have unsaved changes. Discard them?')) return
+  }
   await loadExampleFromUrl(basePath)
 }
 
