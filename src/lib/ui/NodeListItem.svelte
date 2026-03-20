@@ -43,9 +43,17 @@
     else ontoggle(item)
   }
 
+  const isRenaming = $derived(sceneState.renaming === item)
+
   function select() {
     if (sceneState.tool === 'aim') sceneActions.value?.exitAimMode()
     sceneState.selected = item
+  }
+
+  function commitRename(input: HTMLInputElement) {
+    const value = input.value.trim()
+    if (value) item.name = value
+    sceneState.renaming = null
   }
 </script>
 
@@ -81,9 +89,28 @@
     ></div>
   {/if}
 
-  <div class="overflow-hidden text-nowrap text-ellipsis" class:opacity-40={!item.visible}>
-    {item.name}
-  </div>
+  {#if isRenaming}
+    <!-- svelte-ignore a11y_autofocus -->
+    <input
+      autofocus
+      class="min-w-0 flex-1 bg-transparent outline-none"
+      value={item.name}
+      onblur={(e) => commitRename(e.currentTarget)}
+      onkeydown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') {
+          e.currentTarget.value = item.name
+          e.currentTarget.blur()
+        }
+      }}
+      onclick={(e) => e.stopPropagation()}
+    />
+  {:else}
+    <div class="overflow-hidden text-nowrap text-ellipsis" class:opacity-40={!item.visible}>
+      {item.name}
+    </div>
+  {/if}
 
   <button
     class="-mx-1.5 ml-auto h-10 px-1.5 hover:opacity-100!"

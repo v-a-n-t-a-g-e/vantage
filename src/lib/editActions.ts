@@ -20,3 +20,9 @@ export function toggleSelectedLock() {
   if (!sel) return
   sel.locked = !sel.locked
 }
+
+export function renameSelected() {
+  const sel = sceneState.selected
+  if (!sel) return
+  sceneState.renaming = sel
+}

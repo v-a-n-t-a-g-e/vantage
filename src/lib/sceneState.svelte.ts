@@ -58,6 +58,7 @@ type SceneState = {
   projections: ProjectionItem[]
   selected: SceneObject | ProjectionItem | null
   hovered: SceneObject | null
+  renaming: SceneObject | ProjectionItem | null
   tool: Tool
   transformRevision: number
   showGrid: boolean
@@ -69,6 +70,7 @@ export const sceneState: SceneState = $state({
   projections: [],
   selected: null,
   hovered: null,
+  renaming: null,
   tool: 'cursor',
   transformRevision: 0,
   showGrid: true,

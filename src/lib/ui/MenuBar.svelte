@@ -9,7 +9,7 @@
     exampleProjects,
     loadDemoProject,
   } from '@/lib/project/projectActions.ts'
-  import { toggleSelectedVisibility, toggleSelectedLock } from '@/lib/editActions.ts'
+  import { toggleSelectedVisibility, toggleSelectedLock, renameSelected } from '@/lib/editActions.ts'
   import { sceneState } from '@/lib/sceneState.svelte.ts'
   import MenuDropdown from './menu/MenuDropdown.svelte'
   import type { MenuItem } from './menu/types.ts'
@@ -42,6 +42,11 @@
   ])
 
   const editOptions = $derived<MenuItem[]>([
+    {
+      label: 'Rename',
+      disabled: sceneState.selected === null,
+      action: renameSelected,
+    },
     {
       label: sceneState.selected?.visible === false ? 'Show' : 'Hide',
       shortcut: 'Cmd+H',
