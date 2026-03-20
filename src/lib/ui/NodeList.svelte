@@ -135,6 +135,7 @@
       try {
         const texture = await loadTexture(url)
         const projection = new VantageProjection({ texture })
+        projection.position.y = 1.5
         const name = file.name.replace(/\.(jpe?g|png|webp)$/i, '')
         const imagePath = `projections/${file.name}`
         sceneActions.value?.addProjection(name, projection, file, imagePath)

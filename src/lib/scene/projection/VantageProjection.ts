@@ -38,8 +38,8 @@ export class VantageProjection extends PerspectiveCamera {
   constructor({
     texture,
     fov = 60,
-    near = 1,
-    far = 200,
+    near = 5,
+    far = 1000,
     renderTargetSize = 1024,
   }: VantageProjectionOptions = {}) {
     super(fov, 1, near, far)
@@ -52,6 +52,11 @@ export class VantageProjection extends PerspectiveCamera {
     if (texture) this.setTexture(texture)
   }
 
+  override updateProjectionMatrix() {
+    super.updateProjectionMatrix()
+    this._updateProjectionPlaneSize()
+  }
+
   setTexture(texture: Texture) {
     this.texture = texture
     const img = texture.image as HTMLImageElement | HTMLVideoElement | null
@@ -62,7 +67,6 @@ export class VantageProjection extends PerspectiveCamera {
     if (this.projectionPlane) {
       ;(this.projectionPlane.material as MeshBasicMaterial).map = texture
       ;(this.projectionPlane.material as MeshBasicMaterial).needsUpdate = true
-      this._updateProjectionPlaneSize()
     }
   }
 
