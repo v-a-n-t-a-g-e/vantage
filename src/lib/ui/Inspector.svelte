@@ -122,8 +122,14 @@
             const plane = (p as unknown as { projectionPlane: { visible: boolean } | null })
               .projectionPlane
             if (!plane) return
+            const was = projectionPlaneVisible
             projectionPlaneVisible = (e.target as HTMLInputElement).checked
             plane.visible = projectionPlaneVisible
+            const now = projectionPlaneVisible
+            pushCommand({
+              undo: () => { projectionPlaneVisible = was; plane.visible = was },
+              redo: () => { projectionPlaneVisible = now; plane.visible = now },
+            })
           }}
           type="checkbox"
         />

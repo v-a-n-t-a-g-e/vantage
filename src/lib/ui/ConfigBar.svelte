@@ -1,5 +1,8 @@
 <script lang="ts">
   import { sceneState } from '@/lib/sceneState.svelte.ts'
+  import { pushCommand } from '@/lib/history.svelte.ts'
+
+  let colorBefore = ''
   import IconGrid from '@/assets/icons/Grid.svg'
 </script>
 
@@ -7,7 +10,18 @@
   <button
     class="flex items-center transition-opacity"
     class:text-brand={sceneState.showGrid}
-    onclick={() => (sceneState.showGrid = !sceneState.showGrid)}
+    onclick={() => {
+      sceneState.showGrid = !sceneState.showGrid
+      const now = sceneState.showGrid
+      pushCommand({
+        undo: () => {
+          sceneState.showGrid = !now
+        },
+        redo: () => {
+          sceneState.showGrid = now
+        },
+      })
+    }}
   >
     <IconGrid />
   </button>
@@ -19,8 +33,29 @@
     ></span>
     <input
       class="absolute inset-0 cursor-pointer opacity-0"
+      onchange={(e) => {
+        const after = (e.target as HTMLInputElement).value
+        sceneState.clearColor = after
+        const before = colorBefore
+        if (before !== after) {
+          pushCommand({
+            undo: () => {
+              sceneState.clearColor = before
+            },
+            redo: () => {
+              sceneState.clearColor = after
+            },
+          })
+        }
+      }}
+      onfocus={() => {
+        colorBefore = sceneState.clearColor
+      }}
+      oninput={(e) => {
+        sceneState.clearColor = (e.target as HTMLInputElement).value
+      }}
       type="color"
-      bind:value={sceneState.clearColor}
+      value={sceneState.clearColor}
     />
   </label>
 </div>

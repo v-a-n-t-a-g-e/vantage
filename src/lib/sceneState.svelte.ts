@@ -65,6 +65,11 @@ type SceneState = {
   clearColor: string
 }
 
+export const SCENE_DEFAULTS = {
+  showGrid: true,
+  clearColor: '#f3e7fd',
+} as const
+
 export const sceneState: SceneState = $state({
   objects: [],
   projections: [],
@@ -73,8 +78,8 @@ export const sceneState: SceneState = $state({
   renaming: null,
   tool: 'cursor',
   transformRevision: 0,
-  showGrid: true,
-  clearColor: '#f3e7fd',
+  showGrid: SCENE_DEFAULTS.showGrid,
+  clearColor: SCENE_DEFAULTS.clearColor,
 })
 
 let _sceneActions: SceneActions | null = $state(null)

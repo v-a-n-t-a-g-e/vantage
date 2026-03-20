@@ -3,6 +3,8 @@ export interface SceneManifest {
   objects: SceneObjectEntry[]
   camera?: CameraState
   projections?: ProjectionEntry[]
+  showGrid?: boolean
+  clearColor?: string
 }
 
 export interface SceneObjectEntry {

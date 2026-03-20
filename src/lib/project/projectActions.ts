@@ -1,4 +1,4 @@
-import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
+import { sceneState, sceneActions, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
 import { projectState } from '@/lib/project/projectState.svelte.ts'
 import {
   serializeScene,
@@ -48,7 +48,10 @@ async function writeProjectFiles(fs: ProjectFS) {
     }
   }
 
-  const manifest = serializeScene(sceneState.objects, getCameraState?.(), sceneState.projections)
+  const manifest = serializeScene(sceneState.objects, getCameraState?.(), sceneState.projections, {
+    showGrid: sceneState.showGrid,
+    clearColor: sceneState.clearColor,
+  })
   await fs.writeFile('scene.json', JSON.stringify(manifest, null, 2))
 }
 
@@ -129,6 +132,11 @@ function pickDirectory(): Promise<File[]> {
   })
 }
 
+function applySceneSettings(manifest: import('@/lib/project/types.ts').SceneManifest) {
+  sceneState.showGrid = manifest.showGrid ?? SCENE_DEFAULTS.showGrid
+  sceneState.clearColor = manifest.clearColor ?? SCENE_DEFAULTS.clearColor
+}
+
 async function loadProjection(
   manifest: import('@/lib/project/types.ts').SceneManifest,
   readFile: (path: string) => Promise<File>
@@ -171,6 +179,7 @@ async function loadFromFiles(files: File[]) {
     }
 
     await loadProjection(manifest, (path) => fs.readFile(path))
+    applySceneSettings(manifest)
 
     // Derive project name from the root directory in webkitRelativePath
     const firstFile = files[0]
@@ -205,6 +214,7 @@ async function loadFromHandle(handle: FileSystemDirectoryHandle) {
     }
 
     await loadProjection(manifest, (path) => fs.readFile(path))
+    applySceneSettings(manifest)
 
     projectState.directoryHandle = handle
     projectState.memoryFS = null
@@ -311,6 +321,7 @@ async function loadExampleFromUrl(basePath: string) {
     }
 
     await loadProjection(manifest, readFile)
+    applySceneSettings(manifest)
 
     projectState.directoryHandle = null
     projectState.memoryFS = null

@@ -43,17 +43,20 @@ export class TransformGizmo extends TransformControls {
       sceneState.transformRevision++
     })
 
+    let dragTarget: THREE.Object3D | null = null
+
     this.addEventListener('dragging-changed', (e) => {
       orbit.enabled = !(e as any).value
-      const obj = sceneState.selected?.kind === 'object' ? sceneState.selected.object : undefined
       if ((e as any).value) {
-        if (obj)
+        dragTarget = this.object ?? null
+        if (dragTarget)
           dragSnapshot = {
-            position: obj.position.clone(),
-            rotation: obj.rotation.clone(),
-            scale: obj.scale.clone(),
+            position: dragTarget.position.clone(),
+            rotation: dragTarget.rotation.clone(),
+            scale: dragTarget.scale.clone(),
           }
-      } else if (obj && dragSnapshot) {
+      } else if (dragTarget && dragSnapshot) {
+        const obj = dragTarget
         const before = dragSnapshot
         const after = {
           position: obj.position.clone(),
@@ -61,6 +64,7 @@ export class TransformGizmo extends TransformControls {
           scale: obj.scale.clone(),
         }
         dragSnapshot = null
+        dragTarget = null
         pushCommand({
           undo: () => {
             obj.position.copy(before.position)

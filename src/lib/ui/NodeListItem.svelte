@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+  import { pushCommand } from '@/lib/history.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
   import IconLock from '@/assets/icons/Lock.svg'
 
@@ -52,7 +53,14 @@
 
   function commitRename(input: HTMLInputElement) {
     const value = input.value.trim()
-    if (value) item.name = value
+    if (value && value !== item.name) {
+      const oldName = item.name
+      item.name = value
+      pushCommand({
+        undo: () => { item.name = oldName },
+        redo: () => { item.name = value },
+      })
+    }
     sceneState.renaming = null
   }
 </script>
