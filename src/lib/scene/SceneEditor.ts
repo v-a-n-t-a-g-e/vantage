@@ -44,10 +44,16 @@ export class SceneEditor {
   private aimHeldKeys = new Set<string>()
   private aimIsDragging = false
   private aimDragLast = { x: 0, y: 0 }
-  private aimPositionBefore: THREE.Vector3 | null = null
-  private aimRotationBefore: THREE.Euler | null = null
   private aimOrbitPositionBefore: THREE.Vector3 | null = null
   private aimOrbitTargetBefore: THREE.Vector3 | null = null
+  // Per-interaction snapshots for granular undo
+  private aimDragRotationBefore: THREE.Euler | null = null
+  private aimKeyPositionBefore: THREE.Vector3 | null = null
+
+  private static AIM_MOVEMENT_KEYS = new Set([
+    'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyR', 'KeyF',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+  ])
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -289,18 +295,15 @@ export class SceneEditor {
     if (!proj) return
     this.lastTool = 'aim'
 
-    // Snapshot for undo
-    this.aimPositionBefore = proj.projection.position.clone()
-    this.aimRotationBefore = proj.projection.rotation.clone()
-
     // Save orbit state so we can restore it on exit
     this.aimOrbitPositionBefore = this.camera.position.clone()
     this.aimOrbitTargetBefore = this.rig.target.clone()
 
-    // Sync orbit camera to projection viewpoint
+    // Sync orbit camera to projection viewpoint (strip roll to keep camera upright)
     this.camera.position.copy(proj.projection.getWorldPosition(new THREE.Vector3()))
-    proj.projection.getWorldDirection(_forward)
-    this.camera.quaternion.copy(proj.projection.quaternion)
+    _euler.setFromQuaternion(proj.projection.quaternion)
+    _euler.z = 0
+    this.camera.quaternion.setFromEuler(_euler)
 
     // Disable orbit controls and gizmo
     this.rig.enabled = false
@@ -308,12 +311,20 @@ export class SceneEditor {
 
     this.aimHeldKeys.clear()
     this.aimIsDragging = false
+    this.aimDragRotationBefore = null
+    this.aimKeyPositionBefore = null
   }
 
   private exitAimMode() {
     if (sceneState.tool === 'aim') sceneState.tool = 'cursor'
     this.lastTool = sceneState.tool
     const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
+
+    // Flush any in-progress interactions before leaving
+    if (proj) {
+      this.flushAimDragCommand(proj.projection)
+      this.flushAimKeyCommand(proj.projection)
+    }
 
     this.aimHeldKeys.clear()
     this.aimIsDragging = false
@@ -333,36 +344,33 @@ export class SceneEditor {
     // Re-attach gizmo
     if (proj) {
       this.gizmo.attach(proj.projection)
-
-      // Push undo for the accumulated aim-mode transform change
-      if (this.aimPositionBefore && this.aimRotationBefore) {
-        const before = {
-          position: this.aimPositionBefore,
-          rotation: this.aimRotationBefore,
-        }
-        const after = {
-          position: proj.projection.position.clone(),
-          rotation: proj.projection.rotation.clone(),
-        }
-        const p = proj.projection
-        if (!before.position.equals(after.position) || !before.rotation.equals(after.rotation)) {
-          pushCommand({
-            undo: () => {
-              p.position.copy(before.position)
-              p.rotation.copy(before.rotation)
-              sceneState.transformRevision++
-            },
-            redo: () => {
-              p.position.copy(after.position)
-              p.rotation.copy(after.rotation)
-              sceneState.transformRevision++
-            },
-          })
-        }
-      }
     }
-    this.aimPositionBefore = null
-    this.aimRotationBefore = null
+  }
+
+  private flushAimDragCommand(p: VantageProjection) {
+    if (!this.aimDragRotationBefore) return
+    const before = this.aimDragRotationBefore
+    const after = p.rotation.clone()
+    this.aimDragRotationBefore = null
+    if (!before.equals(after)) {
+      pushCommand({
+        undo: () => { p.rotation.copy(before); sceneState.transformRevision++ },
+        redo: () => { p.rotation.copy(after); sceneState.transformRevision++ },
+      })
+    }
+  }
+
+  private flushAimKeyCommand(p: VantageProjection) {
+    if (!this.aimKeyPositionBefore) return
+    const before = this.aimKeyPositionBefore
+    const after = p.position.clone()
+    this.aimKeyPositionBefore = null
+    if (!before.equals(after)) {
+      pushCommand({
+        undo: () => { p.position.copy(before); sceneState.transformRevision++ },
+        redo: () => { p.position.copy(after); sceneState.transformRevision++ },
+      })
+    }
   }
 
   private updateAimMovement(deltaMs: number) {
@@ -415,8 +423,11 @@ export class SceneEditor {
 
   private onAimMouseDown = (event: MouseEvent) => {
     if (sceneState.tool !== 'aim') return
+    const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
+    if (!proj) return
     this.aimIsDragging = true
     this.aimDragLast = { x: event.clientX, y: event.clientY }
+    this.aimDragRotationBefore = proj.projection.rotation.clone()
   }
 
   private onAimMouseMove = (event: MouseEvent) => {
@@ -428,32 +439,56 @@ export class SceneEditor {
     const dy = event.clientY - this.aimDragLast.y
     this.aimDragLast = { x: event.clientX, y: event.clientY }
 
+    // Preserve projection's existing roll
+    _euler.setFromQuaternion(proj.projection.quaternion)
+    const roll = _euler.z
+
+    // Compute new pitch/yaw from camera (always upright)
     _euler.setFromQuaternion(this.camera.quaternion)
     _euler.y -= dx * 0.003
     _euler.x -= dy * 0.003
     _euler.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, _euler.x))
+    _euler.z = 0
     this.camera.quaternion.setFromEuler(_euler)
 
-    proj.projection.quaternion.copy(this.camera.quaternion)
+    // Write back to projection with preserved roll
+    _euler.z = roll
+    proj.projection.quaternion.setFromEuler(_euler)
     proj.projection.updateMatrixWorld()
     sceneState.transformRevision++
   }
 
   private onAimMouseUp = () => {
+    if (!this.aimIsDragging) return
     this.aimIsDragging = false
+    const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
+    if (proj) this.flushAimDragCommand(proj.projection)
   }
 
   private onAimKeydown = (event: KeyboardEvent) => {
-    if (sceneState.tool === 'aim') {
-      this.aimHeldKeys.add(event.code)
-    }
-    if (event.code === 'Escape' && sceneState.tool === 'aim') {
+    if (sceneState.tool !== 'aim') return
+    if (event.code === 'Escape') {
       this.exitAimMode()
+      return
+    }
+    this.aimHeldKeys.add(event.code)
+    // Snapshot position when first movement key is pressed
+    if (SceneEditor.AIM_MOVEMENT_KEYS.has(event.code) && !this.aimKeyPositionBefore) {
+      const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
+      if (proj) this.aimKeyPositionBefore = proj.projection.position.clone()
     }
   }
 
   private onAimKeyup = (event: KeyboardEvent) => {
     this.aimHeldKeys.delete(event.code)
+    // Push position command when all movement keys are released
+    if (SceneEditor.AIM_MOVEMENT_KEYS.has(event.code) && this.aimKeyPositionBefore) {
+      const hasMovementKeys = [...this.aimHeldKeys].some(k => SceneEditor.AIM_MOVEMENT_KEYS.has(k))
+      if (!hasMovementKeys) {
+        const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
+        if (proj) this.flushAimKeyCommand(proj.projection)
+      }
+    }
   }
 
   // ── Scene object management ──
@@ -653,6 +688,14 @@ export class SceneEditor {
 
     if (sceneState.tool === 'aim') {
       this.updateAimMovement(deltaMs)
+      // Sync camera from projection (strip roll to keep camera upright)
+      const aimProj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
+      if (aimProj) {
+        this.camera.position.copy(aimProj.projection.position)
+        _euler.setFromQuaternion(aimProj.projection.quaternion)
+        _euler.z = 0
+        this.camera.quaternion.setFromEuler(_euler)
+      }
     } else {
       this.rig.tick()
     }

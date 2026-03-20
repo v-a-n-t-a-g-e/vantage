@@ -2,6 +2,8 @@
   import NodeListItem from '@/lib/ui/NodeListItem.svelte'
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+  import { pushCommand } from '@/lib/history.svelte.ts'
+  import { toggleVisibility, toggleLock } from '@/lib/editActions.ts'
   import { loadGLTF } from '@/lib/gltfLoader.ts'
   import { VantageProjection, loadTexture } from '@/lib/scene/projection'
   import Add from '@/assets/icons/Add.svg'
@@ -75,16 +77,36 @@
     dropPosition = null
   }
 
+  function moveItem(
+    list: 'projections' | 'objects',
+    item: SceneObject | ProjectionItem,
+    toIndex: number
+  ) {
+    const arr = list === 'projections' ? sceneState.projections : sceneState.objects
+    const from = arr.indexOf(item as any)
+    if (from === -1 || from === toIndex) return
+    arr.splice(from, 1)
+    arr.splice(toIndex, 0, item as any)
+    if (list === 'projections') reprojectAll()
+  }
+
   function reorder(list: 'projections' | 'objects', fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex || fromIndex + 1 === toIndex) return
 
     const arr: (SceneObject | ProjectionItem)[] =
       list === 'projections' ? sceneState.projections : sceneState.objects
-    const [item] = arr.splice(fromIndex, 1)
+    const item = arr[fromIndex]
     const insertAt = toIndex > fromIndex ? toIndex - 1 : toIndex
+    arr.splice(fromIndex, 1)
     arr.splice(insertAt, 0, item)
 
     if (list === 'projections') reprojectAll()
+
+    const undoIndex = fromIndex
+    pushCommand({
+      undo: () => moveItem(list, item, undoIndex),
+      redo: () => moveItem(list, item, insertAt),
+    })
   }
 
   function reprojectAll() {
@@ -180,21 +202,8 @@
           ondragover={(e) => handleDragOver('projections', index, e)}
           ondragstart={(e) => handleDragStart('projections', index, e)}
           ondrop={(e) => handleDrop('projections', index, e)}
-          onlock={(i) => {
-            i.locked = !i.locked
-          }}
-          ontoggle={(i) => {
-            if (i.kind === 'projection') {
-              i.visible = !i.visible
-              for (const obj of sceneState.objects) {
-                if (i.visible) {
-                  i.projection.project(obj.object)
-                } else {
-                  i.projection.unproject(obj.object)
-                }
-              }
-            }
-          }}
+          onlock={toggleLock}
+          ontoggle={toggleVisibility}
         />
       {:else}
         <div
@@ -247,15 +256,8 @@
           ondragover={(e) => handleDragOver('objects', index, e)}
           ondragstart={(e) => handleDragStart('objects', index, e)}
           ondrop={(e) => handleDrop('objects', index, e)}
-          onlock={(i) => {
-            i.locked = !i.locked
-          }}
-          ontoggle={(i) => {
-            if (i.kind === 'object') {
-              i.object.visible = !i.object.visible
-              i.visible = i.object.visible
-            }
-          }}
+          onlock={toggleLock}
+          ontoggle={toggleVisibility}
         />
       {:else}
         <div
