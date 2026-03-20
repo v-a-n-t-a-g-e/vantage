@@ -2,7 +2,7 @@
   import { sceneState } from '@/lib/sceneState.svelte.ts'
 </script>
 
-<div class="ui-container pointer-events-auto absolute bottom-4 left-4 flex items-center gap-3 px-3 py-1.5">
+<div class="ui-container pointer-events-auto flex h-10 shrink-0 items-center gap-3 px-3">
   <label class="flex items-center gap-1.5 text-xs">
     <input type="checkbox" bind:checked={sceneState.showGrid} />
     Grid

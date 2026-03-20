@@ -10,7 +10,10 @@
 <div
   class="pointer-events-none absolute inset-4 grid grid-cols-[250px_1fr_1fr_300px] grid-rows-[auto_1fr] gap-4"
 >
-  <NodeList />
+  <div class="col-start-1 row-span-2 flex min-h-0 flex-col gap-4">
+    <NodeList />
+    <ConfigBar />
+  </div>
   <MenuBar />
 
   {#if sceneState.selected}
@@ -18,5 +21,3 @@
     <Inspector />
   {/if}
 </div>
-
-<ConfigBar />

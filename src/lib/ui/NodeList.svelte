@@ -146,10 +146,10 @@
   }
 </script>
 
-<aside class="col-start-1 row-span-2 flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+<aside class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
   <!-- Projections -->
-  <section class="ui-container">
-    <div class="mt-auto flex h-10 items-center justify-between border-b px-3">
+  <section class="ui-container flex max-h-fit min-h-0 flex-1 flex-col">
+    <div class="flex h-10 shrink-0 items-center justify-between px-3">
       <span>Projections</span>
       <button
         class="-mr-3 ui-button h-full px-3"
@@ -159,6 +159,7 @@
         <Add />
       </button>
     </div>
+
     <input
       bind:this={imageInput}
       class="hidden"
@@ -167,7 +168,8 @@
       onchange={(e) => handleImages((e.target as HTMLInputElement).files)}
       type="file"
     />
-    <div class="flex flex-col-reverse">
+    <div class="border-b"></div>
+    <div class="flex min-h-0 flex-1 flex-col-reverse overflow-auto">
       {#each sceneState.projections as item, index (item.id)}
         <NodeListItem
           {altPressed}
@@ -207,7 +209,7 @@
 
   <!-- Models -->
   <section
-    class="ui-container"
+    class="ui-container flex max-h-fit min-h-0 flex-1 flex-col"
     onclick={(e) => {
       if (e.target === e.currentTarget) {
         sceneState.selected = null
@@ -215,7 +217,7 @@
     }}
     role="presentation"
   >
-    <div class="flex h-10 items-center justify-between border-b px-3">
+    <div class="flex h-10 shrink-0 items-center justify-between px-3">
       <span>Models</span>
       <button
         class="-mr-3 ui-button h-full px-3"
@@ -225,6 +227,7 @@
         <Add />
       </button>
     </div>
+    <div class="border-b"></div>
     <input
       bind:this={modelInput}
       class="hidden"
@@ -233,7 +236,7 @@
       onchange={(e) => handleFiles((e.target as HTMLInputElement).files)}
       type="file"
     />
-    <div class="flex flex-col-reverse">
+    <div class="flex min-h-0 flex-1 flex-col-reverse overflow-auto">
       {#each sceneState.objects as item, index (item.id)}
         <NodeListItem
           {altPressed}

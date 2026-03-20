@@ -65,11 +65,12 @@
   const farHandler = camHandler('far')
 </script>
 
-<aside class="ui-container pointer-events-auto row-span-2 min-h-0 flex-1 overflow-auto">
+<aside class="ui-container pointer-events-auto col-start-4 row-span-2 self-start">
   {#if sel?.kind === 'object' || sel?.kind === 'projection'}
-    <div class="flex h-10 items-center border-b px-3 tracking-wider">
+    <div class="flex h-10 items-center px-3 tracking-wider">
       {sel.kind === 'object' ? 'Transform' : 'Projection'}
     </div>
+    <div class="border-b"></div>
 
     <Vec3Controls
       labels={['x', 'y', 'elevation']}

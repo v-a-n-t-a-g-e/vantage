@@ -58,7 +58,6 @@
       if (fallback) untrack(() => (sceneState.tool = fallback.value))
     }
   })
-
 </script>
 
 <div
