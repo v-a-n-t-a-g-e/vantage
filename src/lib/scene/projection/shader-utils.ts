@@ -26,14 +26,8 @@ export function patchShader(
     `
   )
 
-  const stringDefines = typeof defines === 'object'
-    ? Object.entries(defines as Record<string, string>)
-        .map(([k, v]) => `#define ${k} ${v}`)
-        .join('\n')
-    : ''
-
   return `
-    ${stringDefines}
+    ${defines}
     ${patched}
   `
 }

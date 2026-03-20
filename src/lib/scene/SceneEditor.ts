@@ -13,7 +13,7 @@ import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'
 import { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { themeColors } from '@/lib/scene/themeColors.ts'
-import { VantageProjection, loadTexture } from '@/lib/scene/projection'
+import { VantageProjection, ProjectionHelper, loadTexture } from '@/lib/scene/projection'
 
 // Reused vectors for aim mode
 const _forward = new THREE.Vector3()
@@ -29,7 +29,7 @@ export class SceneEditor {
   private gizmo: TransformGizmo
   private hoverHelper: THREE.BoxHelper | null = null
   private selectionHelper: THREE.BoxHelper | null = null
-  private projectionHelper: THREE.CameraHelper | null = null
+  private projectionHelper: ProjectionHelper | null = null
   private lastSelected: SceneObject | ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
   private lastTool: Tool = 'cursor'
@@ -675,7 +675,7 @@ export class SceneEditor {
       } else if (this.lastSelected?.kind === 'projection') {
         if (sceneState.tool !== 'aim' && sceneState.tool !== 'cursor')
           this.gizmo.attach(this.lastSelected.projection)
-        this.projectionHelper = new THREE.CameraHelper(this.lastSelected.projection)
+        this.projectionHelper = new ProjectionHelper(this.lastSelected.projection)
         this.scene.add(this.projectionHelper)
       } else {
         this.gizmo.detach()

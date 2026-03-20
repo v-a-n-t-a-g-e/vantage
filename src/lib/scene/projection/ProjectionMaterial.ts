@@ -120,8 +120,8 @@ export default class ProjectionMaterial extends MeshPhysicalMaterial {
       shader.uniforms = this.uniforms
 
       if (depthMap) {
-        shader.defines ??= {}
-        shader.defines.STOP_PROPAGATION = ''
+        const defines = (shader.defines ??= {})
+        defines.STOP_PROPAGATION = ''
       }
 
       shader.vertexShader = patchShader(shader.vertexShader, {
