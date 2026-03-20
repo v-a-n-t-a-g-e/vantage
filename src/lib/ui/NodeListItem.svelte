@@ -92,10 +92,10 @@
   {#if isRenaming}
     <!-- svelte-ignore a11y_autofocus -->
     <input
-      autofocus
       class="min-w-0 flex-1 bg-transparent outline-none"
-      value={item.name}
+      autofocus
       onblur={(e) => commitRename(e.currentTarget)}
+      onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => {
         e.stopPropagation()
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -104,7 +104,7 @@
           e.currentTarget.blur()
         }
       }}
-      onclick={(e) => e.stopPropagation()}
+      value={item.name}
     />
   {:else}
     <div class="overflow-hidden text-nowrap text-ellipsis" class:opacity-40={!item.visible}>
