@@ -11,7 +11,8 @@ export function serializeScene(
     target: { x: number; y: number; z: number }
     fov: number
   },
-  projections?: ProjectionItem[]
+  projections?: ProjectionItem[],
+  options?: { showGrid?: boolean; clearColor?: string }
 ): SceneManifest {
   const entries: SceneObjectEntry[] = objects.map((item) => {
     const obj = item.object
@@ -36,7 +37,12 @@ export function serializeScene(
     }
   })
 
-  const manifest: SceneManifest = { version: 1, objects: entries }
+  const manifest: SceneManifest = {
+    version: 1,
+    objects: entries,
+    showGrid: options?.showGrid,
+    clearColor: options?.clearColor,
+  }
 
   if (camera) {
     manifest.camera = {

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { sceneState, setSceneActions, TRANSFORM_TOOLS } from '@/lib/sceneState.svelte.ts'
+import { sceneState, setSceneActions, TRANSFORM_TOOLS, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
 import type {
   SceneObject,
   SceneObjectSource,
@@ -133,6 +133,8 @@ export class SceneEditor {
         sceneState.projections = []
         sceneState.selected = null
         sceneState.hovered = null
+        sceneState.showGrid = SCENE_DEFAULTS.showGrid
+        sceneState.clearColor = SCENE_DEFAULTS.clearColor
         clearHistory()
       },
       addObjectSilent: (name, obj, source) => {
