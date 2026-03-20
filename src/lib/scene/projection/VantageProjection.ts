@@ -13,6 +13,7 @@ import {
   type Material,
 } from 'three'
 import ProjectionMaterial from './ProjectionMaterial'
+import { UI_LAYER } from '@/lib/scene/layers.ts'
 
 interface VantageProjectionOptions {
   texture?: Texture
@@ -126,11 +127,12 @@ export class VantageProjection extends PerspectiveCamera {
   }
 
   private _initProjectionPlane() {
-    const mat = new MeshBasicMaterial({ map: null, transparent: true, depthWrite: false })
+    const mat = new MeshBasicMaterial({ map: null, transparent: true })
     const geo = new PlaneGeometry(1, 1)
     this.projectionPlane = new Mesh(geo, mat)
     this.projectionPlane.visible = true
     this.projectionPlane.renderOrder = -1
+    this.projectionPlane.layers.set(UI_LAYER)
     this.add(this.projectionPlane)
     this._updateProjectionPlaneSize()
   }
