@@ -13,32 +13,8 @@ import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'
 import { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { themeColors } from '@/lib/scene/themeColors.ts'
-import { VantageProjection, loadTexture } from 'vantage-renderer'
-
-/**
- * VantageProjection._applyMaterial wraps mesh.material into an array [mat]
- * and adds a projection group at materialIndex = material.length.
- * This breaks meshes whose groups reference materialIndex > 0 while using a
- * single material (e.g. BoxGeometry has groups with materialIndex 0-5).
- * After wrapping, only index 0 is valid — indices 1-5 become undefined.
- *
- * Fix: before projecting, collapse all single-material groups to materialIndex 0.
- */
-function normalizeGroupsForProjection(object: THREE.Object3D) {
-  object.traverse((child) => {
-    if (!(child as THREE.Mesh).isMesh) return
-    const mesh = child as THREE.Mesh
-    if (Array.isArray(mesh.material) || mesh.geometry.groups.length === 0) return
-
-    // Single material but groups with varying materialIndex → remap to 0
-    const needsRemap = mesh.geometry.groups.some((g) => g.materialIndex !== 0)
-    if (needsRemap) {
-      for (const g of mesh.geometry.groups) {
-        g.materialIndex = 0
-      }
-    }
-  })
-}
+import { UI_LAYER } from '@/lib/scene/layers.ts'
+import { VantageProjection, ProjectionHelper, loadTexture } from '@/lib/scene/projection'
 
 // Reused vectors for aim mode
 const _forward = new THREE.Vector3()
@@ -54,7 +30,7 @@ export class SceneEditor {
   private gizmo: TransformGizmo
   private hoverHelper: THREE.BoxHelper | null = null
   private selectionHelper: THREE.BoxHelper | null = null
-  private projectionHelper: THREE.CameraHelper | null = null
+  private projectionHelper: ProjectionHelper | null = null
   private lastSelected: SceneObject | ProjectionItem | null = null
   private lastHovered: SceneObject | null = null
   private lastTool: Tool = 'cursor'
@@ -92,13 +68,19 @@ export class SceneEditor {
     )
     this.camera.position.set(18, 14, 18)
     this.camera.lookAt(0, 0, 0)
+    this.camera.layers.enable(UI_LAYER)
 
     // Controls
     this.rig = new CameraRig(this.camera, canvas)
     this.rig.enableDamping = true
 
     this.gizmo = new TransformGizmo(this.camera, canvas, this.rig)
-    this.scene.add(this.gizmo.getHelper())
+    // TransformControls uses a shared module-level Raycaster (default layer 0 only).
+    // Enabling UI_LAYER on it lets the gizmo hit-test its own objects after we move them.
+    this.gizmo.getRaycaster().layers.enable(UI_LAYER)
+    const gizmoHelper = this.gizmo.getHelper()
+    gizmoHelper.traverse(o => o.layers.set(UI_LAYER))
+    this.scene.add(gizmoHelper)
 
     // Default scene content
     this.env = new DefaultEnvironment()
@@ -184,6 +166,7 @@ export class SceneEditor {
 
     // Click-to-select + hover in viewport
     const raycaster = new THREE.Raycaster()
+    raycaster.layers.enable(UI_LAYER)
     let pointerDownPos = { x: 0, y: 0 }
     let isDragging = false
 
@@ -516,11 +499,8 @@ export class SceneEditor {
     sceneState.objects = [...sceneState.objects, item]
 
     // Apply all visible projections to the new object
-    if (sceneState.projections.length > 0) {
-      normalizeGroupsForProjection(obj)
-      for (const p of sceneState.projections) {
-        if (p.visible) p.projection.project(obj)
-      }
+    for (const p of sceneState.projections) {
+      if (p.visible) p.projection.project(obj)
     }
 
     return item
@@ -563,10 +543,9 @@ export class SceneEditor {
 
     this.scene.add(projection)
 
-    // Normalize geometry groups and project onto all visible scene objects
+    // Project onto all visible scene objects
     for (const obj of sceneState.objects) {
       if (obj.visible) {
-        normalizeGroupsForProjection(obj.object)
         projection.project(obj.object)
       }
     }
@@ -630,6 +609,7 @@ export class SceneEditor {
         try {
           const texture = await loadTexture(url)
           const projection = new VantageProjection({ texture })
+          projection.position.y = 1.5
           const name = file.name.replace(/\.(jpe?g|png|webp)$/i, '')
           const imagePath = `projections/${file.name}`
           const item = this.doAddProjection(name, projection, imagePath, file)
@@ -697,6 +677,7 @@ export class SceneEditor {
         if (sceneState.tool === 'cursor') {
           this.gizmo.detach()
           this.selectionHelper = new THREE.BoxHelper(this.lastSelected.object, themeColors.brand)
+          this.selectionHelper.layers.set(UI_LAYER)
           this.scene.add(this.selectionHelper)
         } else {
           this.gizmo.attach(this.lastSelected.object)
@@ -704,7 +685,7 @@ export class SceneEditor {
       } else if (this.lastSelected?.kind === 'projection') {
         if (sceneState.tool !== 'aim' && sceneState.tool !== 'cursor')
           this.gizmo.attach(this.lastSelected.projection)
-        this.projectionHelper = new THREE.CameraHelper(this.lastSelected.projection)
+        this.projectionHelper = new ProjectionHelper(this.lastSelected.projection)
         this.scene.add(this.projectionHelper)
       } else {
         this.gizmo.detach()
@@ -722,6 +703,7 @@ export class SceneEditor {
       if (this.gizmo.object) this.gizmo.detach()
       if (this.lastSelected?.kind === 'object' && !this.selectionHelper) {
         this.selectionHelper = new THREE.BoxHelper(this.lastSelected.object, themeColors.brand)
+        this.selectionHelper.layers.set(UI_LAYER)
         this.scene.add(this.selectionHelper)
       }
     } else {
@@ -749,33 +731,15 @@ export class SceneEditor {
       this.lastHovered = sceneState.hovered
       if (this.lastHovered) {
         this.hoverHelper = new THREE.BoxHelper(this.lastHovered.object, themeColors.brand)
+        this.hoverHelper.layers.set(UI_LAYER)
         this.scene.add(this.hoverHelper)
       }
     }
     if (this.hoverHelper) this.hoverHelper.update()
 
-    // Hide helpers during projection depth pass to avoid feedback loops
-    // (VantageProjection._createDepthMap renders the full scene to a render target)
-    const gizmoHelper = this.gizmo.getHelper()
-    const gizmoWasVisible = gizmoHelper.visible
-    const helperWasVisible = this.projectionHelper?.visible ?? false
-    const hoverWasVisible = this.hoverHelper?.visible ?? false
-    const selectionWasVisible = this.selectionHelper?.visible ?? false
-    gizmoHelper.visible = false
-    if (this.projectionHelper) this.projectionHelper.visible = false
-    if (this.hoverHelper) this.hoverHelper.visible = false
-    if (this.selectionHelper) this.selectionHelper.visible = false
-
-    // Update all visible projections
     for (const p of sceneState.projections) {
       if (p.visible) p.projection.update(this.renderer, this.scene)
     }
-
-    // Restore helpers
-    gizmoHelper.visible = gizmoWasVisible
-    if (this.projectionHelper) this.projectionHelper.visible = helperWasVisible
-    if (this.hoverHelper) this.hoverHelper.visible = hoverWasVisible
-    if (this.selectionHelper) this.selectionHelper.visible = selectionWasVisible
 
     // Sync grid visibility and clear color from state
     this.env.grid.visible = sceneState.showGrid

@@ -3,7 +3,7 @@
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
   import { loadGLTF } from '@/lib/gltfLoader.ts'
-  import { VantageProjection, loadTexture } from 'vantage-renderer'
+  import { VantageProjection, loadTexture } from '@/lib/scene/projection'
   import Add from '@/assets/icons/Add.svg'
 
   let modelInput: HTMLInputElement
@@ -135,6 +135,7 @@
       try {
         const texture = await loadTexture(url)
         const projection = new VantageProjection({ texture })
+        projection.position.y = 1.5
         const name = file.name.replace(/\.(jpe?g|png|webp)$/i, '')
         const imagePath = `projections/${file.name}`
         sceneActions.value?.addProjection(name, projection, file, imagePath)

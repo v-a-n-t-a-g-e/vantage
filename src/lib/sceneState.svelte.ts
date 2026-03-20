@@ -1,5 +1,5 @@
 import type { Object3D } from 'three'
-import type { VantageProjection } from 'vantage-renderer'
+import type { VantageProjection } from '@/lib/scene/projection'
 
 export type TransformTool = 'translate' | 'rotate' | 'scale'
 export type Tool = 'cursor' | TransformTool | 'aim'

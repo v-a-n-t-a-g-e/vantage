@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "fflate": "^0.8.2",
-    "three": "^0.183.2",
-    "vantage-renderer": "github:thometnanni/vantage-renderer#dev-refactor"
+    "three": "^0.183.2"
   }
 }
