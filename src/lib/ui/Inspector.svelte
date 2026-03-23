@@ -127,8 +127,14 @@
             plane.visible = projectionPlaneVisible
             const now = projectionPlaneVisible
             pushCommand({
-              undo: () => { projectionPlaneVisible = was; plane.visible = was },
-              redo: () => { projectionPlaneVisible = now; plane.visible = now },
+              undo: () => {
+                projectionPlaneVisible = was
+                plane.visible = was
+              },
+              redo: () => {
+                projectionPlaneVisible = now
+                plane.visible = now
+              },
             })
           }}
           type="checkbox"

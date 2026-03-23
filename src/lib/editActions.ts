@@ -32,8 +32,12 @@ export function toggleLock(item: SceneObject | ProjectionItem) {
   item.locked = !item.locked
   const now = item.locked
   pushCommand({
-    undo: () => { item.locked = !now },
-    redo: () => { item.locked = now },
+    undo: () => {
+      item.locked = !now
+    },
+    redo: () => {
+      item.locked = now
+    },
   })
 }
 

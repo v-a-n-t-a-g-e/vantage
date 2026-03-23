@@ -50,7 +50,7 @@ export class ProjectionHelper extends Group {
     const frustumGeo = new BufferGeometry()
     frustumGeo.setAttribute(
       'position',
-      new BufferAttribute(new Float32Array(FRUSTUM_MESH_VERTS * 3), 3),
+      new BufferAttribute(new Float32Array(FRUSTUM_MESH_VERTS * 3), 3)
     )
     this.frustumMesh = new Mesh(
       frustumGeo,
@@ -60,7 +60,7 @@ export class ProjectionHelper extends Group {
         transparent: true,
         opacity: 0.025,
         depthWrite: false,
-      }),
+      })
     )
     this.frustumMesh.frustumCulled = false
     this.frustumMesh.layers.set(UI_LAYER)
@@ -95,42 +95,66 @@ export class ProjectionHelper extends Group {
     const lPos = this.lines.geometry.getAttribute('position') as BufferAttribute
     let i = 0
     // Cone
-    setLine(lPos, i, _p, _n[0]); i += 2
-    setLine(lPos, i, _p, _n[1]); i += 2
-    setLine(lPos, i, _p, _n[2]); i += 2
-    setLine(lPos, i, _p, _n[3]); i += 2
+    setLine(lPos, i, _p, _n[0])
+    i += 2
+    setLine(lPos, i, _p, _n[1])
+    i += 2
+    setLine(lPos, i, _p, _n[2])
+    i += 2
+    setLine(lPos, i, _p, _n[3])
+    i += 2
     // Near rectangle
-    setLine(lPos, i, _n[0], _n[1]); i += 2
-    setLine(lPos, i, _n[1], _n[3]); i += 2
-    setLine(lPos, i, _n[3], _n[2]); i += 2
-    setLine(lPos, i, _n[2], _n[0]); i += 2
+    setLine(lPos, i, _n[0], _n[1])
+    i += 2
+    setLine(lPos, i, _n[1], _n[3])
+    i += 2
+    setLine(lPos, i, _n[3], _n[2])
+    i += 2
+    setLine(lPos, i, _n[2], _n[0])
+    i += 2
     // Far rectangle
-    setLine(lPos, i, _f[0], _f[1]); i += 2
-    setLine(lPos, i, _f[1], _f[3]); i += 2
-    setLine(lPos, i, _f[3], _f[2]); i += 2
-    setLine(lPos, i, _f[2], _f[0]); i += 2
+    setLine(lPos, i, _f[0], _f[1])
+    i += 2
+    setLine(lPos, i, _f[1], _f[3])
+    i += 2
+    setLine(lPos, i, _f[3], _f[2])
+    i += 2
+    setLine(lPos, i, _f[2], _f[0])
+    i += 2
     // Connecting sides
-    setLine(lPos, i, _n[0], _f[0]); i += 2
-    setLine(lPos, i, _n[1], _f[1]); i += 2
-    setLine(lPos, i, _n[2], _f[2]); i += 2
-    setLine(lPos, i, _n[3], _f[3]); i += 2
+    setLine(lPos, i, _n[0], _f[0])
+    i += 2
+    setLine(lPos, i, _n[1], _f[1])
+    i += 2
+    setLine(lPos, i, _n[2], _f[2])
+    i += 2
+    setLine(lPos, i, _n[3], _f[3])
+    i += 2
     lPos.needsUpdate = true
 
     // Frustum mesh: 4 side faces only (DoubleSide so winding is arbitrary)
     const mPos = this.frustumMesh.geometry.getAttribute('position') as BufferAttribute
     let k = 0
     // Bottom side
-    setTri(mPos, k, _n[0], _f[0], _f[1]); k += 3
-    setTri(mPos, k, _n[0], _f[1], _n[1]); k += 3
+    setTri(mPos, k, _n[0], _f[0], _f[1])
+    k += 3
+    setTri(mPos, k, _n[0], _f[1], _n[1])
+    k += 3
     // Right side
-    setTri(mPos, k, _n[1], _f[1], _f[3]); k += 3
-    setTri(mPos, k, _n[1], _f[3], _n[3]); k += 3
+    setTri(mPos, k, _n[1], _f[1], _f[3])
+    k += 3
+    setTri(mPos, k, _n[1], _f[3], _n[3])
+    k += 3
     // Top side
-    setTri(mPos, k, _n[3], _f[3], _f[2]); k += 3
-    setTri(mPos, k, _n[3], _f[2], _n[2]); k += 3
+    setTri(mPos, k, _n[3], _f[3], _f[2])
+    k += 3
+    setTri(mPos, k, _n[3], _f[2], _n[2])
+    k += 3
     // Left side
-    setTri(mPos, k, _n[2], _f[2], _f[0]); k += 3
-    setTri(mPos, k, _n[2], _f[0], _n[0]); k += 3
+    setTri(mPos, k, _n[2], _f[2], _f[0])
+    k += 3
+    setTri(mPos, k, _n[2], _f[0], _n[0])
+    k += 3
     mPos.needsUpdate = true
 
     return this

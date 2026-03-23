@@ -57,8 +57,12 @@
       const oldName = item.name
       item.name = value
       pushCommand({
-        undo: () => { item.name = oldName },
-        redo: () => { item.name = value },
+        undo: () => {
+          item.name = oldName
+        },
+        redo: () => {
+          item.name = value
+        },
       })
     }
     sceneState.renaming = null

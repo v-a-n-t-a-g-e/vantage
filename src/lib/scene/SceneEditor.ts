@@ -1,5 +1,10 @@
 import * as THREE from 'three'
-import { sceneState, setSceneActions, TRANSFORM_TOOLS, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
+import {
+  sceneState,
+  setSceneActions,
+  TRANSFORM_TOOLS,
+  SCENE_DEFAULTS,
+} from '@/lib/sceneState.svelte.ts'
 import type {
   SceneObject,
   SceneObjectSource,
@@ -51,8 +56,16 @@ export class SceneEditor {
   private aimKeyPositionBefore: THREE.Vector3 | null = null
 
   private static AIM_MOVEMENT_KEYS = new Set([
-    'KeyW', 'KeyS', 'KeyA', 'KeyD', 'KeyR', 'KeyF',
-    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'KeyW',
+    'KeyS',
+    'KeyA',
+    'KeyD',
+    'KeyR',
+    'KeyF',
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
   ])
 
   constructor(canvas: HTMLCanvasElement) {
@@ -85,7 +98,7 @@ export class SceneEditor {
     // Enabling UI_LAYER on it lets the gizmo hit-test its own objects after we move them.
     this.gizmo.getRaycaster().layers.enable(UI_LAYER)
     const gizmoHelper = this.gizmo.getHelper()
-    gizmoHelper.traverse(o => o.layers.set(UI_LAYER))
+    gizmoHelper.traverse((o) => o.layers.set(UI_LAYER))
     this.scene.add(gizmoHelper)
 
     // Default scene content
@@ -356,8 +369,14 @@ export class SceneEditor {
     this.aimDragRotationBefore = null
     if (!before.equals(after)) {
       pushCommand({
-        undo: () => { p.rotation.copy(before); sceneState.transformRevision++ },
-        redo: () => { p.rotation.copy(after); sceneState.transformRevision++ },
+        undo: () => {
+          p.rotation.copy(before)
+          sceneState.transformRevision++
+        },
+        redo: () => {
+          p.rotation.copy(after)
+          sceneState.transformRevision++
+        },
       })
     }
   }
@@ -369,8 +388,14 @@ export class SceneEditor {
     this.aimKeyPositionBefore = null
     if (!before.equals(after)) {
       pushCommand({
-        undo: () => { p.position.copy(before); sceneState.transformRevision++ },
-        redo: () => { p.position.copy(after); sceneState.transformRevision++ },
+        undo: () => {
+          p.position.copy(before)
+          sceneState.transformRevision++
+        },
+        redo: () => {
+          p.position.copy(after)
+          sceneState.transformRevision++
+        },
       })
     }
   }
@@ -485,7 +510,9 @@ export class SceneEditor {
     this.aimHeldKeys.delete(event.code)
     // Push position command when all movement keys are released
     if (SceneEditor.AIM_MOVEMENT_KEYS.has(event.code) && this.aimKeyPositionBefore) {
-      const hasMovementKeys = [...this.aimHeldKeys].some(k => SceneEditor.AIM_MOVEMENT_KEYS.has(k))
+      const hasMovementKeys = [...this.aimHeldKeys].some((k) =>
+        SceneEditor.AIM_MOVEMENT_KEYS.has(k)
+      )
       if (!hasMovementKeys) {
         const proj = sceneState.selected?.kind === 'projection' ? sceneState.selected : null
         if (proj) this.flushAimKeyCommand(proj.projection)
