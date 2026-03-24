@@ -7,6 +7,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  publicDir: false,
   build: {
     lib: {
       entry: {
