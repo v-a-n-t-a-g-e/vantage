@@ -6,6 +6,7 @@
   "exports": {
     ".": {
       "types": "./dist/lib/index.d.ts",
+      "source": "./src/lib/index.ts",
       "import": "./dist/lib/index.js"
     },
     "./theme.css": "./src/lib/theme.css"

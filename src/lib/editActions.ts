@@ -9,6 +9,7 @@ function applyVisibility(item: SceneObject | ProjectionItem, visible: boolean) {
     item.visible = visible
   } else {
     item.visible = visible
+    item.projection.visible = visible
     for (const obj of sceneState.objects) {
       if (visible) item.projection.project(obj.object)
       else item.projection.unproject(obj.object)

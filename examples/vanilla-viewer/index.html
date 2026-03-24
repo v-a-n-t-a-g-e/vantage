@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vantage Viewer</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header id="topbar" class="ui-container">
+      <span id="project-name">Vantage Demo</span>
+    </header>
+
+    <aside id="panel" class="ui-container">
+      <h3>Objects</h3>
+      <ul id="object-list"></ul>
+      <h3>Projections</h3>
+      <ul id="projection-list"></ul>
+    </aside>
+
+    <canvas id="viewport"></canvas>
+    <div id="loading">Loading scene...</div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
