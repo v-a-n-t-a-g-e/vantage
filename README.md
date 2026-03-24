@@ -1,43 +1,158 @@
-# Svelte + Vite
+# Vantage
 
-This template should help get you started developing with Svelte in Vite.
+A 3D scene editor for projection mapping. Import models, position cameras, and project images onto geometry with depth-aware materials.
 
-## Recommended IDE Setup
+Built with Svelte 5, Three.js, and TypeScript.
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## Library
 
-## Need an official Svelte framework?
+The projection system, scene serialization, and theme are published as `@krisenstab/vantage` on npm. Three.js is a peer dependency — install it alongside the package.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+```sh
+npm i @krisenstab/vantage three
+```
 
-## Technical considerations
+### Exports
 
-**Why use this over SvelteKit?**
+Import from `@krisenstab/vantage`:
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+| Export | Description |
+|--------|-------------|
+| `VantageProjection` | Camera that projects a texture onto scene geometry. Extends `PerspectiveCamera`. |
+| `ProjectionMaterial` | Custom shader material used internally by `VantageProjection`. |
+| `ProjectionHelper` | Frustum and near/far plane visualizer for a projection. |
+| `loadTexture` | Async texture loader returning a Three.js `Texture`. |
+| `serializeScene` | Converts scene objects and projections into a `SceneManifest`. |
+| `deserializeScene` | Reconstructs `SceneObject[]` from a manifest and a file reader. |
+| `deserializeProjections` | Reconstructs `ProjectionItem[]` from manifest entries and a file reader. |
+| `themeColors` | Live CSS-backed `{ axisX, axisY, axisZ, brand }` as `THREE.Color` getters. |
+| `themeColorDefaults` | Hardcoded fallback colors (no DOM required). |
+| `UI_LAYER` | Three.js layer index used for non-pickable UI geometry. |
 
-This template contains as little as possible to get started with Vite + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+Types are included: `SceneManifest`, `SceneObject`, `ProjectionItem`, `ProjectionEntry`, `SceneObjectEntry`, `CameraState`, `Tool`, `TransformTool`, and more.
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `checkJs` in the JS template?**
-
-It is likely that most cases of changing variable types in runtime are likely to be accidental, rather than deliberate. This provides advanced typechecking out of the box. Should you like to take advantage of the dynamically-typed nature of JavaScript, it is trivial to change the configuration.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/sveltejs/svelte-hmr/tree/master/packages/svelte-hmr#preservation-of-local-state).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
+### Example
 
 ```js
-// store.js
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+import { VantageProjection, loadTexture } from '@krisenstab/vantage'
+import * as THREE from 'three'
+
+const projection = new VantageProjection({ fov: 60, near: 5, far: 1000 })
+projection.position.set(10, 8, 10)
+projection.lookAt(0, 0, 0)
+
+const texture = await loadTexture(imageUrl)
+projection.setTexture(texture)
+
+// Apply the projection to a mesh — adds a depth-aware shader overlay
+projection.project(mesh)
+
+// In render loop: update depth maps, then render the scene
+projection.update(renderer, scene)
+renderer.render(scene, camera)
+```
+
+### Theme CSS
+
+Import `@krisenstab/vantage/theme.css` to get Tailwind v4 theme variables, custom utilities, and the Space Grotesk font:
+
+```css
+@import '@krisenstab/vantage/theme.css';
+```
+
+This provides:
+
+**Colors** (as Tailwind `@theme` variables):
+
+| Variable | Value |
+|----------|-------|
+| `--color-vantage-green` | `#01ff00` |
+| `--color-vantage-blue` | `#41b8ff` |
+| `--color-vantage-red` | `#ff7704` |
+| `--color-vantage-brand` | `var(--color-vantage-green)` |
+| `--color-vantage-axis-x` | `var(--color-vantage-red)` |
+| `--color-vantage-axis-y` | `var(--color-vantage-blue)` |
+| `--color-vantage-axis-z` | `var(--color-vantage-green)` |
+
+**Utilities:**
+
+| Class | Effect |
+|-------|--------|
+| `ui-container` | `pointer-events-auto`, white background, black border |
+| `ui-button` | Flex row, 40px height, horizontal padding, hover highlight |
+| `tnum` | Tabular number font features |
+
+## Development
+
+### Prerequisites
+
+Node.js 24+
+
+### Setup
+
+```sh
+npm install
+npm run dev
+```
+
+### Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start dev server with HMR |
+| `npm run build` | Build the app for production |
+| `npm run build:lib` | Build the library bundle and type declarations |
+| `npm run preview` | Preview the production build locally |
+| `npm test` | Run tests (Vitest) |
+| `npm run lint` | Lint with ESLint |
+| `npm run format` | Format with Prettier |
+
+### Tech stack
+
+| | |
+|--|--|
+| Framework | Svelte 5 |
+| 3D | Three.js r183 |
+| Bundler | Vite 8 |
+| CSS | Tailwind CSS 4 |
+| Language | TypeScript 5.9 |
+| Tests | Vitest |
+
+### Project structure
+
+```
+src/
+  app.css                    App-level Tailwind config
+  lib/
+    index.ts                 Library entry point
+    types.ts                 Shared type definitions
+    theme.css                Reusable Tailwind theme
+    constants.ts             Camera defaults, thresholds, file patterns
+    sceneState.svelte.ts     Reactive scene state ($state runes)
+    history.svelte.ts        Undo/redo command system
+    editActions.ts           Object/projection edit operations
+    fileImport.ts            Drag-and-drop and file picker imports
+    shortcutRegistry.ts      Keyboard shortcut definitions
+    scene/
+      SceneEditor.ts         Main orchestrator (renderer, camera, gizmo)
+      CameraRig.ts           OrbitControls camera wrapper
+      AimModeController.ts   Projection camera positioning
+      PickingController.ts   Raycasting and click selection
+      SelectionManager.ts    Selection highlighting and gizmo
+      TransformGizmo.ts      Translate/rotate/scale controls
+      projection/
+        VantageProjection.ts Projection camera
+        ProjectionMaterial.ts  Depth-aware shader
+        ProjectionHelper.ts  Frustum visualizer
+    project/
+      serializer.ts          Scene to/from manifest
+      projectActions.ts      Save, load, export
+      validateManifest.ts    Manifest schema validation
+    ui/
+      MenuBar.svelte         File/Edit/View menus
+      Toolbar.svelte         Tool selection
+      NodeList.svelte        Object and projection list
+      Inspector.svelte       Property editor
+examples/
+  vanilla-viewer/            Standalone viewer using the library (no Svelte)
 ```
