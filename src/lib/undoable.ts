@@ -13,8 +13,12 @@ export function undoableToggle<T, K extends keyof T>(
     ;(target[key] as boolean) = !was
     const now = target[key] as boolean
     pushCommand({
-      undo: () => { (target[key] as boolean) = was },
-      redo: () => { (target[key] as boolean) = now },
+      undo: () => {
+        ;(target[key] as boolean) = was
+      },
+      redo: () => {
+        ;(target[key] as boolean) = now
+      },
     })
   }
 }

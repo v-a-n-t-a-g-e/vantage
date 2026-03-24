@@ -151,10 +151,7 @@ function applySceneSettings(manifest: import('@/lib/project/types.ts').SceneMani
   sceneState.clearColor = manifest.clearColor ?? SCENE_DEFAULTS.clearColor
 }
 
-async function loadFromFS(
-  readFile: (path: string) => Promise<File>,
-  finalizeState: () => void
-) {
+async function loadFromFS(readFile: (path: string) => Promise<File>, finalizeState: () => void) {
   projectState.busy = true
   try {
     const sceneFile = await readFile('scene.json')

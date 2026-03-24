@@ -16,11 +16,37 @@ export const SHORTCUT_DEFS = [
     id: 'deselect',
     key: 'Escape',
     label: 'Deselect',
-    action: () => { sceneState.selected = null },
+    action: () => {
+      sceneState.selected = null
+    },
   },
-  { id: 'save', key: 's', meta: true, label: 'Save', action: () => { saveProject() } },
-  { id: 'open', key: 'o', meta: true, label: 'Open', action: () => { openProject() } },
-  { id: 'new', key: 'n', meta: true, label: 'New Project', action: () => { newProject() } },
+  {
+    id: 'save',
+    key: 's',
+    meta: true,
+    label: 'Save',
+    action: () => {
+      saveProject()
+    },
+  },
+  {
+    id: 'open',
+    key: 'o',
+    meta: true,
+    label: 'Open',
+    action: () => {
+      openProject()
+    },
+  },
+  {
+    id: 'new',
+    key: 'n',
+    meta: true,
+    label: 'New Project',
+    action: () => {
+      newProject()
+    },
+  },
   {
     id: 'toggle-visibility',
     key: 'h',
@@ -41,7 +67,5 @@ export const SHORTCUT_DEFS = [
  * Register all application shortcuts. Returns a cleanup function.
  */
 export function registerAllShortcuts(): () => void {
-  return registerShortcuts(
-    SHORTCUT_DEFS.map(({ id: _, label: __, ...shortcut }) => shortcut)
-  )
+  return registerShortcuts(SHORTCUT_DEFS.map(({ id: _, label: __, ...shortcut }) => shortcut))
 }

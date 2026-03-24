@@ -1,11 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import {
-  deserializeScene,
-  deserializeProjections,
-  ProjectionHelper,
-  UI_LAYER,
-} from 'vantage'
+import { deserializeScene, deserializeProjections, ProjectionHelper, UI_LAYER } from 'vantage'
 
 // ── Renderer ──
 
@@ -18,12 +13,7 @@ renderer.setClearColor(0xf0f0f0)
 // ── Scene & Camera ──
 
 const scene = new THREE.Scene()
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  100000,
-)
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100000)
 camera.layers.enable(UI_LAYER)
 
 // ── Lights ──
@@ -72,10 +62,7 @@ async function loadDemo() {
 
   // Deserialize projections
   if (manifest.projections?.length) {
-    const projItems = await deserializeProjections(
-      manifest.projections,
-      readFile,
-    )
+    const projItems = await deserializeProjections(manifest.projections, readFile)
     for (const p of projItems) {
       scene.add(p.projection)
 
@@ -207,6 +194,5 @@ loadDemo()
   .then(() => animate())
   .catch((err) => {
     console.error('Failed to load demo:', err)
-    document.getElementById('loading').textContent =
-      'Failed to load scene. Check console.'
+    document.getElementById('loading').textContent = 'Failed to load scene. Check console.'
   })

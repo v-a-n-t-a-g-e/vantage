@@ -82,7 +82,14 @@ describe('validateManifest', () => {
   it('rejects object entry with missing id', () => {
     const manifest = {
       version: 1,
-      objects: [{ name: 'Box', visible: true, source: { kind: 'primitive' }, transform: { position: [0,0,0], rotation: [0,0,0], scale: [1,1,1] } }],
+      objects: [
+        {
+          name: 'Box',
+          visible: true,
+          source: { kind: 'primitive' },
+          transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        },
+      ],
     }
     expect(() => validateManifest(manifest)).toThrow(/objects\[0\]\.id/)
   })

@@ -36,11 +36,7 @@ function reprojectAll() {
   }
 }
 
-function moveItem(
-  list: ListKind,
-  item: SceneObject | ProjectionItem,
-  toIndex: number
-) {
+function moveItem(list: ListKind, item: SceneObject | ProjectionItem, toIndex: number) {
   const arr: (SceneObject | ProjectionItem)[] =
     list === 'projections' ? sceneState.projections : sceneState.objects
   const from = arr.indexOf(item)
@@ -71,7 +67,9 @@ function reorder(list: ListKind, fromIndex: number, toIndex: number) {
 
 export function useDragReorder() {
   return {
-    get state() { return dragState },
+    get state() {
+      return dragState
+    },
 
     handleDragStart(list: ListKind, index: number, e: DragEvent) {
       dragState.list = list
@@ -97,12 +95,12 @@ export function useDragReorder() {
         dragState.dragIndex === null ||
         dragState.dropIndex === null ||
         dragState.dropPosition === null
-      ) return
+      )
+        return
 
       // Column-reverse: visual above = after in array, visual below = before in array
-      const targetIndex = dragState.dropPosition === 'above'
-        ? dragState.dropIndex + 1
-        : dragState.dropIndex
+      const targetIndex =
+        dragState.dropPosition === 'above' ? dragState.dropIndex + 1 : dragState.dropIndex
       reorder(list, dragState.dragIndex, targetIndex)
       reset()
     },
@@ -112,20 +110,19 @@ export function useDragReorder() {
     },
 
     getDropPosition(list: ListKind, index: number): DropPosition | null {
-      if (
-        dragState.list !== list ||
-        dragState.dropIndex !== index ||
-        dragState.dragIndex === null
-      ) return null
+      if (dragState.list !== list || dragState.dropIndex !== index || dragState.dragIndex === null)
+        return null
       // Column-reverse: above = after in array, below = before in array
       if (
         dragState.dropPosition === 'above' &&
         (index === dragState.dragIndex || index === dragState.dragIndex - 1)
-      ) return null
+      )
+        return null
       if (
         dragState.dropPosition === 'below' &&
         (index === dragState.dragIndex || index === dragState.dragIndex + 1)
-      ) return null
+      )
+        return null
       return dragState.dropPosition
     },
   }

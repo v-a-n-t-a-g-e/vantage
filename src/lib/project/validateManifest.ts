@@ -9,34 +9,24 @@ export class ManifestValidationError extends Error {
 
 function assertType(value: unknown, type: string, path: string): void {
   if (typeof value !== type) {
-    throw new ManifestValidationError(
-      `Expected ${path} to be ${type}, got ${typeof value}`
-    )
+    throw new ManifestValidationError(`Expected ${path} to be ${type}, got ${typeof value}`)
   }
 }
 
 function assertArray(value: unknown, path: string): asserts value is unknown[] {
   if (!Array.isArray(value)) {
-    throw new ManifestValidationError(
-      `Expected ${path} to be an array, got ${typeof value}`
-    )
+    throw new ManifestValidationError(`Expected ${path} to be an array, got ${typeof value}`)
   }
 }
 
 function assertVec3(value: unknown, path: string): asserts value is [number, number, number] {
   assertArray(value, path)
   if (value.length !== 3 || !value.every((v) => typeof v === 'number')) {
-    throw new ManifestValidationError(
-      `Expected ${path} to be [number, number, number]`
-    )
+    throw new ManifestValidationError(`Expected ${path} to be [number, number, number]`)
   }
 }
 
-function validateTransform(
-  transform: unknown,
-  path: string,
-  includeScale: boolean
-): void {
+function validateTransform(transform: unknown, path: string, includeScale: boolean): void {
   if (!transform || typeof transform !== 'object') {
     throw new ManifestValidationError(`Expected ${path} to be an object`)
   }
@@ -70,10 +60,7 @@ function validateObjectEntry(entry: unknown, index: number): asserts entry is Sc
   validateTransform(e.transform, `${path}.transform`, true)
 }
 
-function validateProjectionEntry(
-  entry: unknown,
-  index: number
-): asserts entry is ProjectionEntry {
+function validateProjectionEntry(entry: unknown, index: number): asserts entry is ProjectionEntry {
   const path = `projections[${index}]`
   if (!entry || typeof entry !== 'object') {
     throw new ManifestValidationError(`Expected ${path} to be an object`)
@@ -102,9 +89,7 @@ export function validateManifest(data: unknown): SceneManifest {
   const d = data as Record<string, unknown>
 
   if (d.version !== 1) {
-    throw new ManifestValidationError(
-      `Unsupported manifest version: ${d.version} (expected 1)`
-    )
+    throw new ManifestValidationError(`Unsupported manifest version: ${d.version} (expected 1)`)
   }
 
   assertArray(d.objects, 'objects')

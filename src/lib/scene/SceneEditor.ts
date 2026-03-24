@@ -1,15 +1,6 @@
 import * as THREE from 'three'
-import {
-  sceneState,
-  setSceneActions,
-  SCENE_DEFAULTS,
-} from '@/lib/sceneState.svelte.ts'
-import type {
-  SceneObject,
-  SceneObjectSource,
-  ProjectionItem,
-  Tool,
-} from '@/lib/types.ts'
+import { sceneState, setSceneActions, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
+import type { SceneObject, SceneObjectSource, ProjectionItem, Tool } from '@/lib/types.ts'
 import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
 import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'
@@ -171,10 +162,14 @@ export class SceneEditor {
     // Drag-and-drop file import
     const opts = { signal: this.ac.signal }
     canvas.addEventListener('dragover', (e) => e.preventDefault(), opts)
-    canvas.addEventListener('drop', (e) => {
-      e.preventDefault()
-      this.handleFiles(e.dataTransfer?.files)
-    }, opts)
+    canvas.addEventListener(
+      'drop',
+      (e) => {
+        e.preventDefault()
+        this.handleFiles(e.dataTransfer?.files)
+      },
+      opts
+    )
 
     // Resize
     this.ro = new ResizeObserver(() => {

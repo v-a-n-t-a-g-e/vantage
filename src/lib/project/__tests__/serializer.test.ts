@@ -4,10 +4,7 @@ import { serializeScene } from '@/lib/project/serializer.ts'
 import type { SceneObject, ProjectionItem } from '@/lib/types.ts'
 
 function makeSceneObject(overrides: Partial<SceneObject> = {}): SceneObject {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(10, 10, 10),
-    new THREE.MeshStandardMaterial()
-  )
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshStandardMaterial())
   mesh.position.set(1, 2, 3)
   mesh.rotation.set(0.1, 0.2, 0.3)
   mesh.scale.set(1, 1, 1)

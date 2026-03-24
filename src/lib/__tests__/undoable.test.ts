@@ -44,7 +44,9 @@ describe('undoable', () => {
       let value = 10
       const drag = undoableDrag(
         () => value,
-        (v) => { value = v }
+        (v) => {
+          value = v
+        }
       )
 
       drag.start()
@@ -64,7 +66,9 @@ describe('undoable', () => {
       let value = 10
       const drag = undoableDrag(
         () => value,
-        (v) => { value = v }
+        (v) => {
+          value = v
+        }
       )
 
       drag.start()
