@@ -3,9 +3,23 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/index.js"
+    },
+    "./theme.css": "./src/lib/theme.css"
+  },
+  "files": [
+    "dist/lib",
+    "src/lib/theme.css",
+    "src/assets/*.woff2"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:app": "vite build",
+    "build:lib": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -37,5 +51,13 @@
   "dependencies": {
     "fflate": "^0.8.2",
     "three": "^0.183.2"
+  },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
   }
 }

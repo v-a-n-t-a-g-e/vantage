@@ -10,8 +10,8 @@ import {
   DoubleSide,
   type PerspectiveCamera,
 } from 'three'
-import { themeColors } from '@/lib/scene/themeColors.ts'
-import { UI_LAYER } from '@/lib/scene/layers.ts'
+import { themeColors } from '../themeColors.ts'
+import { UI_LAYER } from '../layers.ts'
 
 // 4 cone lines + 12 frustum lines (near × 4 + far × 4 + sides × 4)  ×  2 verts
 const LINE_VERTS = (4 + 12) * 2

@@ -1,14 +1,12 @@
 import * as THREE from 'three'
+import { sceneState } from '@/lib/sceneState.svelte.ts'
 import {
-  sceneState,
   TRANSFORM_TOOLS,
-} from '@/lib/sceneState.svelte.ts'
-import type {
-  SceneObject,
-  ProjectionItem,
-  TransformTool,
-  Tool,
-} from '@/lib/sceneState.svelte.ts'
+  type SceneObject,
+  type ProjectionItem,
+  type TransformTool,
+  type Tool,
+} from '@/lib/types.ts'
 import type { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { ProjectionHelper } from '@/lib/scene/projection'
 import { themeColors } from '@/lib/scene/themeColors.ts'

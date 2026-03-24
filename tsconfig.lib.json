@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "dist/lib",
+    "rootDir": "src/lib",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src/lib/index.ts",
+    "src/lib/types.ts",
+    "src/lib/project/types.ts",
+    "src/lib/scene/projection/**/*.ts",
+    "src/lib/scene/layers.ts",
+    "src/lib/scene/themeColors.ts",
+    "src/lib/project/serializer.ts",
+    "src/lib/gltfLoader.ts"
+  ]
+}

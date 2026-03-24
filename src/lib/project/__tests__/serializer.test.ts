@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import { serializeScene } from '@/lib/project/serializer.ts'
-import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+import type { SceneObject, ProjectionItem } from '@/lib/types.ts'
 
 function makeSceneObject(overrides: Partial<SceneObject> = {}): SceneObject {
   const mesh = new THREE.Mesh(

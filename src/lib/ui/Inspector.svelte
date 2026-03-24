@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
-  import type { ProjectionItem } from '@/lib/sceneState.svelte.ts'
+  import type { ProjectionItem } from '@/lib/types.ts'
   import { pushCommand } from '@/lib/history.svelte.ts'
   import Vec3Controls from '@/lib/ui/Vec3Controls.svelte'
   import DragInput from '@/lib/ui/DragInput.svelte'

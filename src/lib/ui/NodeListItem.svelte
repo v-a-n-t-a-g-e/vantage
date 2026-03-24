@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
-  import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+  import type { SceneObject, ProjectionItem } from '@/lib/types.ts'
   import { pushCommand } from '@/lib/history.svelte.ts'
   import IconHide from '@/assets/icons/Hide.svg'
   import IconLock from '@/assets/icons/Lock.svg'

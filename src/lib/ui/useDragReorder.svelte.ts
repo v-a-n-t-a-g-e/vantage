@@ -1,6 +1,6 @@
 import { pushCommand } from '@/lib/history.svelte.ts'
 import { sceneState } from '@/lib/sceneState.svelte.ts'
-import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+import type { SceneObject, ProjectionItem } from '@/lib/types.ts'
 
 type ListKind = 'projections' | 'objects'
 type DropPosition = 'above' | 'below'

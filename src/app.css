@@ -1,51 +1,15 @@
-@import 'tailwindcss';
+@import './lib/theme.css';
 
 @theme {
-  --color-green: #01ff00;
-  --color-blue: #41b8ff;
-  --color-red: #ff7704;
+  --color-green: var(--color-vantage-green);
+  --color-blue: var(--color-vantage-blue);
+  --color-red: var(--color-vantage-red);
 
-  --color-brand: var(--color-green);
+  --color-brand: var(--color-vantage-brand);
 
-  --color-axis-x: var(--color-red);
-  --color-axis-y: var(--color-blue);
-  --color-axis-z: var(--color-green);
-}
-
-@utility ui-container {
-  @apply pointer-events-auto border border-black bg-white;
-}
-
-@utility ui-button {
-  @apply flex h-10 items-center px-3 hover:bg-gray-200;
-}
-
-@utility tnum {
-  font-feature-settings: 'liga', 'ss03', 'ss02', 'tnum';
-}
-
-@font-face {
-  font-family: space;
-  src: url('@/assets/SpaceGrotesk-Regular.woff2');
-  font-weight: normal;
-}
-
-@font-face {
-  font-family: space;
-  src: url('@/assets/SpaceGrotesk-Medium.woff2');
-  font-weight: bold;
-}
-
-:root {
-  font-family: space, sans-serif;
-  font-feature-settings: 'liga', 'ss03', 'ss02';
-  line-height: 1.5;
-  font-weight: normal;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-axis-x: var(--color-vantage-axis-x);
+  --color-axis-y: var(--color-vantage-axis-y);
+  --color-axis-z: var(--color-vantage-axis-z);
 }
 
 .bg-axis-x {

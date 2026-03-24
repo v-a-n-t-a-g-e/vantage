@@ -9,7 +9,7 @@ import type {
   SceneObjectSource,
   ProjectionItem,
   Tool,
-} from '@/lib/sceneState.svelte.ts'
+} from '@/lib/types.ts'
 import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
 import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { CameraRig } from '@/lib/scene/CameraRig.ts'

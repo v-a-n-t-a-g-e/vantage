@@ -13,7 +13,7 @@ import {
   type Material,
 } from 'three'
 import ProjectionMaterial from './ProjectionMaterial'
-import { UI_LAYER } from '@/lib/scene/layers.ts'
+import { UI_LAYER } from '../layers.ts'
 
 interface VantageProjectionOptions {
   texture?: Texture

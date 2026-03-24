@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-vantage-green: #01ff00;
+  --color-vantage-blue: #41b8ff;
+  --color-vantage-red: #ff7704;
+
+  --color-vantage-brand: var(--color-vantage-green);
+
+  --color-vantage-axis-x: var(--color-vantage-red);
+  --color-vantage-axis-y: var(--color-vantage-blue);
+  --color-vantage-axis-z: var(--color-vantage-green);
+}
+
+@utility ui-container {
+  @apply pointer-events-auto border border-black bg-white;
+}
+
+@utility ui-button {
+  @apply flex h-10 items-center px-3 hover:bg-gray-200;
+}
+
+@utility tnum {
+  font-feature-settings: 'liga', 'ss03', 'ss02', 'tnum';
+}
+
+@font-face {
+  font-family: space;
+  src: url('@/assets/SpaceGrotesk-Regular.woff2');
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: space;
+  src: url('@/assets/SpaceGrotesk-Medium.woff2');
+  font-weight: bold;
+}
+
+:root {
+  font-family: space, sans-serif;
+  font-feature-settings: 'liga', 'ss03', 'ss02';
+  line-height: 1.5;
+  font-weight: normal;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

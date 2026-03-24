@@ -14,17 +14,26 @@ function resolveColor(varName: string): THREE.Color {
   return new THREE.Color(rgb)
 }
 
+/** Hardcoded fallbacks matching theme.css — usable without a DOM. */
+export const themeColorDefaults = {
+  brand: new THREE.Color('#01ff00'),
+  axisX: new THREE.Color('#ff7704'),
+  axisY: new THREE.Color('#41b8ff'),
+  axisZ: new THREE.Color('#01ff00'),
+}
+
+/** Reads live CSS custom properties from the DOM. Requires the theme CSS to be loaded. */
 export const themeColors = {
   get axisX() {
-    return resolveColor('--color-axis-x')
+    return resolveColor('--color-vantage-axis-x')
   },
   get axisY() {
-    return resolveColor('--color-axis-y')
+    return resolveColor('--color-vantage-axis-y')
   },
   get axisZ() {
-    return resolveColor('--color-axis-z')
+    return resolveColor('--color-vantage-axis-z')
   },
   get brand() {
-    return resolveColor('--color-brand')
+    return resolveColor('--color-vantage-brand')
   },
 }

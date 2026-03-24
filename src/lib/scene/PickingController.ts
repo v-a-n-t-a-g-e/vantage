@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { sceneState } from '@/lib/sceneState.svelte.ts'
-import type { SceneObject, ProjectionItem } from '@/lib/sceneState.svelte.ts'
+import type { SceneObject, ProjectionItem } from '@/lib/types.ts'
 import { UI_LAYER } from '@/lib/scene/layers.ts'
 import type { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { DRAG_PIXEL_THRESHOLD } from '@/lib/constants.ts'

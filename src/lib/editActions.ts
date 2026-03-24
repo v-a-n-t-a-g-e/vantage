@@ -1,5 +1,5 @@
 import { sceneState } from './sceneState.svelte.ts'
-import type { SceneObject, ProjectionItem } from './sceneState.svelte.ts'
+import type { SceneObject, ProjectionItem } from './types.ts'
 import { pushCommand } from './history.svelte.ts'
 import { undoableToggle } from './undoable.ts'
 

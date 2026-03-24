@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import { sceneState } from '@/lib/sceneState.svelte.ts'
-  import type { Tool } from '@/lib/sceneState.svelte.ts'
+  import type { Tool } from '@/lib/types.ts'
   import type { Component } from 'svelte'
 
   import IconCursor from '@/assets/icons/Cursor.svg'
