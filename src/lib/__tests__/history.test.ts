@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock projectState before importing history

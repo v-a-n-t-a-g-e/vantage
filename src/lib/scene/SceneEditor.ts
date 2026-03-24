@@ -300,7 +300,7 @@ export class SceneEditor {
       sceneState.selected?.kind === 'projection' &&
       sceneState.selected.projection === item.projection
     if (sceneState.tool === 'aim' && isSelected) {
-      this.exitAimMode()
+      this.aimController.exit()
     }
 
     // Unproject from all objects

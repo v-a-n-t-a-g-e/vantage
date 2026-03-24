@@ -3,12 +3,9 @@
   import { sceneState } from '@/lib/sceneState.svelte.ts'
   import DragInput from '@/lib/ui/DragInput.svelte'
 
-  type Vec3 = { x: number; y: number; z: number }
-  type TransformableObject = Record<string, Vec3>
-
   interface Props {
     title: string
-    object: TransformableObject
+    object: any
     prop: string
     labels?: [string, string, string]
     step?: number
@@ -29,7 +26,7 @@
   type Axis = 'x' | 'y' | 'z'
 
   let values = $state({ x: 0, y: 0, z: 0 })
-  let startObj: TransformableObject | null = null
+  let startObj: any = null
   let startSnapshot = { x: 0, y: 0, z: 0 }
 
   $effect(() => {
@@ -42,7 +39,7 @@
 
   function onstart(axis: Axis) {
     startObj = object
-    startSnapshot[axis] = startObj![prop][axis]
+    startSnapshot[axis] = startObj[prop][axis]
   }
 
   function onchange(axis: Axis, v: number) {

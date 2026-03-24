@@ -129,7 +129,6 @@ export class ProjectionHelper extends Group {
     setLine(lPos, i, _n[2], _f[2])
     i += 2
     setLine(lPos, i, _n[3], _f[3])
-    i += 2
     lPos.needsUpdate = true
 
     // Frustum mesh: 4 side faces only (DoubleSide so winding is arbitrary)
@@ -154,7 +153,6 @@ export class ProjectionHelper extends Group {
     setTri(mPos, k, _n[2], _f[2], _f[0])
     k += 3
     setTri(mPos, k, _n[2], _f[0], _n[0])
-    k += 3
     mPos.needsUpdate = true
 
     return this

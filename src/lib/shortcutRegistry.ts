@@ -42,12 +42,6 @@ export const SHORTCUT_DEFS = [
  */
 export function registerAllShortcuts(): () => void {
   return registerShortcuts(
-    SHORTCUT_DEFS.map(({ key, meta, shift, alt, action }) => ({
-      key,
-      meta: meta as boolean | undefined,
-      shift: shift as boolean | undefined,
-      alt: alt as boolean | undefined,
-      action,
-    }))
+    SHORTCUT_DEFS.map(({ id: _, label: __, ...shortcut }) => shortcut)
   )
 }

@@ -4,17 +4,17 @@ import { pushCommand } from '@/lib/history.svelte.ts'
  * Create an undoable toggle for a boolean property.
  * Returns a function that toggles the value and pushes an undo command.
  */
-export function undoableToggle<T extends Record<string, boolean>>(
+export function undoableToggle<T, K extends keyof T>(
   target: T,
-  key: keyof T & string
+  key: T[K] extends boolean ? K : never
 ): () => void {
   return () => {
-    const was = target[key]
-    target[key] = !was as T[typeof key]
-    const now = target[key]
+    const was = target[key] as boolean
+    ;(target[key] as boolean) = !was
+    const now = target[key] as boolean
     pushCommand({
-      undo: () => { target[key] = was },
-      redo: () => { target[key] = now },
+      undo: () => { (target[key] as boolean) = was },
+      redo: () => { (target[key] as boolean) = now },
     })
   }
 }
