@@ -13,4 +13,16 @@ export default defineConfig({
     },
     dedupe: ['three'],
   },
+  build: {
+    chunkSizeWarningLimit: 650,
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/three/')) {
+            return 'three'
+          }
+        },
+      },
+    },
+  },
 })

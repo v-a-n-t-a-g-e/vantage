@@ -13,7 +13,8 @@ export class TransformGizmo extends TransformControls {
     this.setColors(themeColors.axisX, themeColors.axisY, themeColors.axisZ, themeColors.axisX)
 
     // Dim inactive axis handles
-    const gizmo = (this as any)._gizmo
+    // @ts-expect-error accessing internal TransformControls property for axis dimming
+    const gizmo = this._gizmo
     const origUpdate = gizmo.updateMatrixWorld.bind(gizmo)
     gizmo.updateMatrixWorld = function (force: boolean) {
       origUpdate(force)

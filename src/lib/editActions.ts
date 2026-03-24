@@ -1,6 +1,7 @@
 import { sceneState } from './sceneState.svelte.ts'
 import type { SceneObject, ProjectionItem } from './sceneState.svelte.ts'
 import { pushCommand } from './history.svelte.ts'
+import { undoableToggle } from './undoable.ts'
 
 function applyVisibility(item: SceneObject | ProjectionItem, visible: boolean) {
   if (item.kind === 'object') {
@@ -29,16 +30,7 @@ export function toggleSelectedVisibility() {
 }
 
 export function toggleLock(item: SceneObject | ProjectionItem) {
-  item.locked = !item.locked
-  const now = item.locked
-  pushCommand({
-    undo: () => {
-      item.locked = !now
-    },
-    redo: () => {
-      item.locked = now
-    },
-  })
+  undoableToggle(item, 'locked')()
 }
 
 export function toggleSelectedLock() {

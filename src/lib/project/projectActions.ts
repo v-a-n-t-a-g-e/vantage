@@ -9,6 +9,8 @@ import { createProjectFS, supportsNativeFS } from '@/lib/project/fileSystem.ts'
 import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 import { createMemoryFS, exportAsZip, downloadBlob } from '@/lib/project/memoryFS.ts'
 import { addRecentHandle, getRecentHandles } from '@/lib/project/handleStore.ts'
+import { validateManifest } from '@/lib/project/validateManifest.ts'
+import { PROJECT_DIRS } from '@/lib/constants.ts'
 
 let getCameraState:
   | (() => {
@@ -21,8 +23,6 @@ let getCameraState:
 export function setGetCameraState(fn: typeof getCameraState) {
   getCameraState = fn
 }
-
-const PROJECT_DIRS = ['models', 'projections']
 
 async function ensureDirectories(fs: ProjectFS) {
   for (const dir of PROJECT_DIRS) {
@@ -91,7 +91,14 @@ export async function saveProject() {
 
 export async function saveProjectAs() {
   if (supportsNativeFS()) {
-    const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+    let handle: FileSystemDirectoryHandle
+    try {
+      handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return // user cancelled
+      console.error('Failed to pick directory:', err)
+      return
+    }
     projectState.directoryHandle = handle
     projectState.projectName = handle.name
     await saveProject()
@@ -110,7 +117,14 @@ export async function openProject() {
   }
 
   if (supportsNativeFS()) {
-    const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+    let handle: FileSystemDirectoryHandle
+    try {
+      handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return // user cancelled
+      console.error('Failed to pick directory:', err)
+      return
+    }
     await loadFromHandle(handle)
   } else {
     const files = await pickDirectory()
@@ -137,93 +151,79 @@ function applySceneSettings(manifest: import('@/lib/project/types.ts').SceneMani
   sceneState.clearColor = manifest.clearColor ?? SCENE_DEFAULTS.clearColor
 }
 
-async function loadProjection(
-  manifest: import('@/lib/project/types.ts').SceneManifest,
-  readFile: (path: string) => Promise<File>
+async function loadFromFS(
+  readFile: (path: string) => Promise<File>,
+  finalizeState: () => void
 ) {
-  if (!manifest.projections?.length) return
+  projectState.busy = true
+  try {
+    const sceneFile = await readFile('scene.json')
+    const raw = JSON.parse(await sceneFile.text())
+    const manifest = validateManifest(raw)
 
-  const projections = await deserializeProjections(manifest.projections, readFile)
-  for (const p of projections) {
-    const item = sceneActions.value?.addProjectionSilent(p.name, p.projection, p.imagePath)
-    if (item) {
-      item.id = p.id
-      item.visible = p.visible
-      // If not visible, unproject from all objects (addProjectionSilent projects by default)
-      if (!p.visible) {
-        for (const obj of sceneState.objects) {
-          p.projection.unproject(obj.object)
+    sceneActions.value?.clearScene()
+
+    const objects = await deserializeScene(manifest, readFile)
+    for (const obj of objects) {
+      const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
+      if (item) {
+        item.id = obj.id
+        item.visible = obj.visible
+        item.object.visible = obj.visible
+      }
+    }
+
+    if (manifest.projections?.length) {
+      const projections = await deserializeProjections(manifest.projections, readFile)
+      for (const p of projections) {
+        const item = sceneActions.value?.addProjectionSilent(p.name, p.projection, p.imagePath)
+        if (item) {
+          item.id = p.id
+          item.visible = p.visible
+          if (!p.visible) {
+            for (const obj of sceneState.objects) {
+              p.projection.unproject(obj.object)
+            }
+          }
         }
       }
     }
+
+    applySceneSettings(manifest)
+    finalizeState()
+    projectState.dirty = false
+  } finally {
+    projectState.busy = false
   }
 }
 
 async function loadFromFiles(files: File[]) {
-  projectState.busy = true
-  try {
-    const fs = createMemoryFS(files)
-    const sceneFile = await fs.readFile('scene.json')
-    const manifest = JSON.parse(await sceneFile.text())
+  const fs = createMemoryFS(files)
+  const firstFile = files[0]
+  const rootDir = firstFile?.webkitRelativePath.split('/')[0]
 
-    sceneActions.value?.clearScene()
-
-    const objects = await deserializeScene(manifest, (path) => fs.readFile(path))
-    for (const obj of objects) {
-      const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
-      if (item) {
-        item.id = obj.id
-        item.visible = obj.visible
-        item.object.visible = obj.visible
-      }
+  await loadFromFS(
+    (path) => fs.readFile(path),
+    () => {
+      projectState.memoryFS = fs
+      projectState.directoryHandle = null
+      projectState.projectName = rootDir ?? 'project'
     }
-
-    await loadProjection(manifest, (path) => fs.readFile(path))
-    applySceneSettings(manifest)
-
-    // Derive project name from the root directory in webkitRelativePath
-    const firstFile = files[0]
-    const rootDir = firstFile?.webkitRelativePath.split('/')[0]
-
-    projectState.memoryFS = fs
-    projectState.directoryHandle = null
-    projectState.projectName = rootDir ?? 'project'
-    projectState.dirty = false
-  } finally {
-    projectState.busy = false
-  }
+  )
 }
 
 async function loadFromHandle(handle: FileSystemDirectoryHandle) {
-  projectState.busy = true
-  try {
-    const fs = createProjectFS(handle)
-    const sceneFile = await fs.readFile('scene.json')
-    const manifest = JSON.parse(await sceneFile.text())
+  const fs = createProjectFS(handle)
 
-    sceneActions.value?.clearScene()
-
-    const objects = await deserializeScene(manifest, (path) => fs.readFile(path))
-    for (const obj of objects) {
-      const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
-      if (item) {
-        item.id = obj.id
-        item.visible = obj.visible
-        item.object.visible = obj.visible
-      }
+  await loadFromFS(
+    (path) => fs.readFile(path),
+    () => {
+      projectState.directoryHandle = handle
+      projectState.memoryFS = null
+      projectState.projectName = handle.name
     }
-
-    await loadProjection(manifest, (path) => fs.readFile(path))
-    applySceneSettings(manifest)
-
-    projectState.directoryHandle = handle
-    projectState.memoryFS = null
-    projectState.projectName = handle.name
-    projectState.dirty = false
-    await recordRecent(handle)
-  } finally {
-    projectState.busy = false
-  }
+  )
+  await recordRecent(handle)
 }
 
 // ── New ──
@@ -298,39 +298,16 @@ export async function loadDemoProject(basePath = './demo') {
 }
 
 async function loadExampleFromUrl(basePath: string) {
-  projectState.busy = true
-  try {
-    const res = await fetch(`${basePath}/scene.json`)
-    if (!res.ok) return
-    const manifest = JSON.parse(await res.text())
+  const readFile = async (path: string): Promise<File> => {
+    const r = await fetch(`${basePath}/${path}`)
+    if (!r.ok) throw new Error(`Failed to fetch ${path}`)
+    const blob = await r.blob()
+    return new File([blob], path.split('/').pop()!)
+  }
 
-    sceneActions.value?.clearScene()
-
-    const readFile = async (path: string): Promise<File> => {
-      const r = await fetch(`${basePath}/${path}`)
-      if (!r.ok) throw new Error(`Failed to fetch ${path}`)
-      const blob = await r.blob()
-      return new File([blob], path.split('/').pop()!)
-    }
-
-    const objects = await deserializeScene(manifest, readFile)
-    for (const obj of objects) {
-      const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
-      if (item) {
-        item.id = obj.id
-        item.visible = obj.visible
-        item.object.visible = obj.visible
-      }
-    }
-
-    await loadProjection(manifest, readFile)
-    applySceneSettings(manifest)
-
+  await loadFromFS(readFile, () => {
     projectState.directoryHandle = null
     projectState.memoryFS = null
     projectState.projectName = basePath.split('/').pop() ?? 'example'
-    projectState.dirty = false
-  } finally {
-    projectState.busy = false
-  }
+  })
 }

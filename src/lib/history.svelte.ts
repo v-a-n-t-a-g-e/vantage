@@ -1,11 +1,12 @@
 import { projectState } from '@/lib/project/projectState.svelte.ts'
+import { HISTORY_MAX_COMMANDS } from '@/lib/constants.ts'
 
 type Command = { undo: () => void; redo: () => void }
 
 const state = $state({ past: [] as Command[], future: [] as Command[] })
 
 export function pushCommand(cmd: Command) {
-  if (state.past.length >= 100) state.past.shift()
+  if (state.past.length >= HISTORY_MAX_COMMANDS) state.past.shift()
   state.past.push(cmd)
   state.future = []
   projectState.dirty = true
