@@ -90,7 +90,7 @@ export class VantageProjection extends PerspectiveCamera {
       const idx = materials.indexOf(mat)
       if (idx !== -1) {
         mesh.geometry.groups = mesh.geometry.groups.filter((g) => g.materialIndex !== idx)
-        if (!hadGroups) {
+        if (!hadGroups && materials.length === 2) {
           mesh.geometry.groups = mesh.geometry.groups.filter((g) => g.materialIndex !== 0)
         }
         mesh.geometry.groups.forEach((g) => {
