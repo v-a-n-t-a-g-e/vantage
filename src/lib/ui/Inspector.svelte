@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sceneState, sceneActions } from '@/lib/sceneState.svelte.ts'
   import type { ProjectionItem } from '@/lib/types.ts'
+  import type { SplatScaleFilter } from '@/lib/splatScaleFilter.ts'
   import { pushCommand } from '@/lib/history.svelte.ts'
   import Vec3Controls from '@/lib/ui/Vec3Controls.svelte'
   import DragInput from '@/lib/ui/DragInput.svelte'
@@ -61,6 +62,55 @@
   const fovHandler = camHandler('fov')
   const nearHandler = camHandler('near')
   const farHandler = camHandler('far')
+
+  // ── Splat scale filter ──
+
+  /** True when the selected object is a gaussian splat with a filter attached */
+  const isSplat = $derived(
+    sel?.kind === 'object' && sel.source.kind === 'imported' && sel.source.objectType === 'splat'
+  )
+
+  // Mirror the filter's current threshold into reactive state so the DragInput
+  // updates when the selection changes.
+  let maxSplatScale = $state(1e9)
+
+  $effect(() => {
+    if (!isSplat || sel?.kind !== 'object') return
+    const filter = sel.object.userData?.splatScaleFilter as SplatScaleFilter | undefined
+    maxSplatScale = filter?.getMaxScale() ?? 1e9
+  })
+
+  let splatScaleStart = 0
+
+  const splatScaleHandler = {
+    onstart: () => {
+      if (sel?.kind !== 'object') return
+      const filter = sel.object.userData?.splatScaleFilter as SplatScaleFilter | undefined
+      splatScaleStart = filter?.getMaxScale() ?? 1e9
+    },
+    onchange: (v: number) => {
+      if (sel?.kind !== 'object') return
+      maxSplatScale = v
+      const filter = sel.object.userData?.splatScaleFilter as SplatScaleFilter | undefined
+      filter?.setMaxScale(v)
+    },
+    onend: (v: number) => {
+      if (sel?.kind !== 'object' || splatScaleStart === v) return
+      const before = splatScaleStart
+      const filter = sel.object.userData?.splatScaleFilter as SplatScaleFilter | undefined
+      if (!filter) return
+      pushCommand({
+        undo: () => {
+          filter.setMaxScale(before)
+          maxSplatScale = before
+        },
+        redo: () => {
+          filter.setMaxScale(v)
+          maxSplatScale = v
+        },
+      })
+    },
+  }
 </script>
 
 <aside class="ui-container pointer-events-auto col-start-4 row-span-2 self-start">
@@ -95,6 +145,22 @@
         step={0.01}
         title="Scale"
       />
+
+      {#if isSplat}
+        <div class="border-b border-black text-xs">
+          <div class="px-3 py-1.5">Filter</div>
+          <div class="flex">
+            <div class="flex-1 px-3 py-1.5">
+              <DragInput
+                label="max size"
+                step={0.01}
+                value={maxSplatScale}
+                {...splatScaleHandler}
+              />
+            </div>
+          </div>
+        </div>
+      {/if}
     {/if}
 
     {#if sel.kind === 'projection'}

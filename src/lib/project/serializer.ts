@@ -1,5 +1,6 @@
 import type { SceneObject, SceneObjectSource, ProjectionItem } from '../types.ts'
 import type { SceneManifest, SceneObjectEntry, ProjectionEntry } from './types.ts'
+import type { SplatScaleFilter } from '../splatScaleFilter.ts'
 import { loadGLTF } from '../gltfLoader.ts'
 import { VantageProjection, loadTexture } from '../scene/projection'
 import * as THREE from 'three'
@@ -29,6 +30,17 @@ export function serializeScene(
       else if (item.source.objectType === 'splat') type = 'splat'
     }
 
+    // Persist splat scale filter threshold when it has been changed from the
+    // default (1e9 = "unlimited"). Skipping it keeps scene.json clean.
+    let metadata: Record<string, unknown> | undefined
+    if (type === 'splat') {
+      const filter = (obj as any).userData?.splatScaleFilter as SplatScaleFilter | undefined
+      const maxSplatScale = filter?.getMaxScale()
+      if (maxSplatScale !== undefined && maxSplatScale < 1e9) {
+        metadata = { maxSplatScale }
+      }
+    }
+
     return {
       id: item.id,
       name: item.name,
@@ -40,6 +52,7 @@ export function serializeScene(
         scale: [obj.scale.x, obj.scale.y, obj.scale.z],
       },
       visible: item.visible,
+      ...(metadata ? { metadata } : {}),
     }
   })
 
@@ -123,6 +136,13 @@ export async function deserializeScene(
       const { splatMesh } = await loadSplat(file, ext ?? 'splat')
       object = splatMesh
       source = { kind: 'imported', relativePath: entry.source.path, objectType: 'splat' }
+      // Restore persisted filter threshold if one was saved.
+      // attachScaleFilter is called inside loadSplat, so the filter is already
+      // present on userData by the time we get here.
+      if (entry.metadata?.maxSplatScale !== undefined) {
+        const filter = (splatMesh as any).userData?.splatScaleFilter as SplatScaleFilter | undefined
+        filter?.setMaxScale(entry.metadata.maxSplatScale as number)
+      }
     } else {
       const file = await readFile(entry.source.path)
       const { group } = await loadGLTF(file)

@@ -20,8 +20,21 @@ export async function loadSplat(
   // Map our extension string to spark's SplatFileType enum
   const fileType = SplatFileType[extension.toUpperCase() as keyof typeof SplatFileType]
 
-  const mesh = new SplatMesh({ fileBytes, fileType })
+  // Build the scale filter BEFORE constructing SplatMesh so the modifier is
+  // passed as a constructor option. This is critical: SplatMesh compiles its
+  // shader graph in the constructor and again at the end of asyncInitialize()
+  // (when `initialized` resolves). Passing objectModifier upfront ensures the
+  // modifier is included in both compilations — setting it after the fact and
+  // calling updateGenerator() is unreliable due to spark's internal init order.
+  const { buildScaleFilter } = await import('./splatScaleFilter.ts')
+  const { modifier, filter } = await buildScaleFilter()
+
+  const mesh = new SplatMesh({ fileBytes, fileType, objectModifier: modifier as any })
   await mesh.initialized
+
+  // Store the filter interface on userData for the Inspector and serializer
+  mesh.userData ??= {}
+  mesh.userData.splatScaleFilter = filter
 
   return { splatMesh: mesh as unknown as Object3D, blob: file }
 }
