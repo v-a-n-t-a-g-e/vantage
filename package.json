@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@sparkjsdev/spark": "^0.1.10",
     "@sveltejs/vite-plugin-svelte": "^6.2.1",
     "@tailwindcss/vite": "^4.2.1",
     "@types/three": "^0.183.1",
@@ -57,6 +58,12 @@
     "vite": "^8.0.0-beta.13"
   },
   "peerDependencies": {
-    "three": ">=0.160.0"
+    "three": ">=0.160.0",
+    "@sparkjsdev/spark": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@sparkjsdev/spark": {
+      "optional": true
+    }
   }
 }

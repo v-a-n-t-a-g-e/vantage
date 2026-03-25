@@ -23,10 +23,16 @@ export function serializeScene(
       source = { kind: 'imported', path: item.source.relativePath }
     }
 
+    let type: SceneObjectEntry['type'] = 'mesh'
+    if (item.source.kind === 'imported') {
+      if (item.source.objectType === 'pointcloud') type = 'pointcloud'
+      else if (item.source.objectType === 'splat') type = 'splat'
+    }
+
     return {
       id: item.id,
       name: item.name,
-      type: 'mesh' as const,
+      type,
       source,
       transform: {
         position: [obj.position.x, obj.position.y, obj.position.z],
@@ -104,6 +110,19 @@ export async function deserializeScene(
         new THREE.MeshStandardMaterial({ color: 0x888888 })
       )
       source = { kind: 'primitive', geometryType: entry.source.geometryType }
+    } else if (entry.type === 'pointcloud') {
+      const file = await readFile(entry.source.path)
+      const { loadPLY } = await import('../plyLoader.ts')
+      const { points } = await loadPLY(file)
+      object = points
+      source = { kind: 'imported', relativePath: entry.source.path, objectType: 'pointcloud' }
+    } else if (entry.type === 'splat') {
+      const file = await readFile(entry.source.path)
+      const { loadSplat } = await import('../splatLoader.ts')
+      const ext = file.name.split('.').pop()?.toLowerCase() as import('../splatLoader.ts').SplatExtension
+      const { splatMesh } = await loadSplat(file, ext ?? 'splat')
+      object = splatMesh
+      source = { kind: 'imported', relativePath: entry.source.path, objectType: 'splat' }
     } else {
       const file = await readFile(entry.source.path)
       const { group } = await loadGLTF(file)

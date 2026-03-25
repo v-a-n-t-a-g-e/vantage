@@ -29,6 +29,8 @@ export class SceneEditor {
   private aimController: AimModeController
   private pickingController: PickingController
   private ac = new AbortController()
+  private sparkRenderer: { dispose(): void } | null = null
+  private sparkRendererInitialized = false
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -80,6 +82,7 @@ export class SceneEditor {
 
     // Register actions
     setSceneActions({
+      initSparkRenderer: () => this.initSparkRenderer(),
       addObject: (name, obj, source) => {
         const item = this.doAdd(name, obj, source)
         pushCommand({
@@ -224,9 +227,14 @@ export class SceneEditor {
     }
     sceneState.objects = [...sceneState.objects, item]
 
-    // Apply all visible projections to the new object
-    for (const p of sceneState.projections) {
-      if (p.visible) p.projection.project(obj)
+    // Apply all visible projections to the new object (skip for splats and point clouds)
+    const skipProjection =
+      source.kind === 'imported' &&
+      (source.objectType === 'splat' || source.objectType === 'pointcloud')
+    if (!skipProjection) {
+      for (const p of sceneState.projections) {
+        if (p.visible) p.projection.project(obj)
+      }
     }
 
     return item
@@ -326,6 +334,18 @@ export class SceneEditor {
     }
   }
 
+  private async initSparkRenderer(): Promise<void> {
+    if (this.sparkRendererInitialized) return
+    this.sparkRendererInitialized = true
+    try {
+      const { SparkRenderer } = await import('@sparkjsdev/spark')
+      this.sparkRenderer = new SparkRenderer({ renderer: this.renderer, autoUpdate: true })
+    } catch {
+      this.sparkRendererInitialized = false
+      throw new Error('@sparkjsdev/spark is not installed. Run: npm install @sparkjsdev/spark')
+    }
+  }
+
   // ── Render loop ──
 
   private animate() {
@@ -377,6 +397,7 @@ export class SceneEditor {
     for (const p of sceneState.projections) {
       p.projection.dispose()
     }
+    this.sparkRenderer?.dispose()
     this.renderer.dispose()
   }
 }

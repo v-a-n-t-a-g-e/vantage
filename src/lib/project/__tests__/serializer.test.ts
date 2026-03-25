@@ -129,6 +129,44 @@ describe('serializeScene', () => {
     expect(manifest.objects[1].name).toBe('Second')
   })
 
+  it('serializes pointcloud objectType as type pointcloud', () => {
+    const obj = makeSceneObject({
+      source: { kind: 'imported', relativePath: 'models/scan.ply', objectType: 'pointcloud' },
+    })
+    const manifest = serializeScene([obj])
+    expect(manifest.objects[0].type).toBe('pointcloud')
+  })
+
+  it('serializes splat objectType as type splat', () => {
+    const obj = makeSceneObject({
+      source: { kind: 'imported', relativePath: 'models/scene.splat', objectType: 'splat' },
+    })
+    const manifest = serializeScene([obj])
+    expect(manifest.objects[0].type).toBe('splat')
+  })
+
+  it('serializes gltf objectType as type mesh', () => {
+    const obj = makeSceneObject({
+      source: { kind: 'imported', relativePath: 'models/scene.glb', objectType: 'gltf' },
+    })
+    const manifest = serializeScene([obj])
+    expect(manifest.objects[0].type).toBe('mesh')
+  })
+
+  it('serializes imported source without objectType as type mesh (backwards compat)', () => {
+    const obj = makeSceneObject({
+      source: { kind: 'imported', relativePath: 'models/old.glb' },
+    })
+    const manifest = serializeScene([obj])
+    expect(manifest.objects[0].type).toBe('mesh')
+  })
+
+  it('serializes primitive source as type mesh', () => {
+    const obj = makeSceneObject()
+    const manifest = serializeScene([obj])
+    expect(manifest.objects[0].type).toBe('mesh')
+  })
+
   it('produces valid JSON-serializable output', () => {
     const obj = makeSceneObject()
     const proj = makeProjectionItem()

@@ -8,6 +8,6 @@ export default defineConfig({
     conditions: ['source'],
   },
   server: {
-    port: 3001,
+    port: 3007,
   },
 })

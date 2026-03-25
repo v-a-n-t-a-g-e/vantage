@@ -160,6 +160,11 @@ async function loadFromFS(readFile: (path: string) => Promise<File>, finalizeSta
 
     sceneActions.value?.clearScene()
 
+    const hasSplats = manifest.objects.some(
+      (e) => e.source.kind === 'imported' && e.type === 'splat'
+    )
+    if (hasSplats) await sceneActions.value?.initSparkRenderer()
+
     const objects = await deserializeScene(manifest, readFile)
     for (const obj of objects) {
       const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)

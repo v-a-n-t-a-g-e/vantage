@@ -7,7 +7,7 @@ export const TRANSFORM_TOOLS: TransformTool[] = ['translate', 'rotate', 'scale']
 
 export type SceneObjectSource =
   | { kind: 'primitive'; geometryType: string }
-  | { kind: 'imported'; relativePath: string; originalBlob?: Blob }
+  | { kind: 'imported'; relativePath: string; originalBlob?: Blob; objectType?: 'gltf' | 'pointcloud' | 'splat' }
 
 export type SceneObject = {
   kind: 'object'
@@ -35,6 +35,7 @@ export type SceneActions = {
   removeObject: (_item: SceneObject) => void
   focusObject: (_item: SceneObject) => void
   clearScene: () => void
+  initSparkRenderer: () => Promise<void>
   addObjectSilent: (_name: string, _obj: Object3D, _source: SceneObjectSource) => SceneObject
   addProjection: (
     _name: string,
