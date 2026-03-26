@@ -73,6 +73,8 @@ async function loadDemo() {
         }
       }
 
+      p.projection.projectionPlane.visible = false
+
       // Create frustum helper
       const helper = new ProjectionHelper(p.projection)
       scene.add(helper)
