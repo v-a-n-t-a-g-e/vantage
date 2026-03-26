@@ -2,45 +2,18 @@
   "version": 1,
   "objects": [
     {
-      "id": "9ace1bb6-03d1-4284-87a8-4b5201852dcb",
-      "name": "Box",
-      "type": "mesh",
-      "source": {
-        "kind": "primitive",
-        "geometryType": "box"
-      },
-      "transform": {
-        "position": [
-          -1.8027553233873057,
-          0.254394486089188,
-          7.069506603568371
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "visible": true
-    },
-    {
-      "id": "44557f57-901a-48c7-b0f6-f30e26d95510",
-      "name": "scene-2",
+      "id": "652bda1c-01da-4028-bdf0-2cc14a503f28",
+      "name": "Brandenburger Tor",
       "type": "mesh",
       "source": {
         "kind": "imported",
-        "path": "models/scene-2.gltf"
+        "path": "models/Brandenburger Tor.glb"
       },
       "transform": {
         "position": [
           0,
-          -44.1,
-          -0.5241161460956576
+          0,
+          0
         ],
         "rotation": [
           0,
@@ -56,39 +29,125 @@
       "visible": true
     }
   ],
+  "showGrid": false,
+  "clearColor": "#bcaaca",
   "camera": {
     "position": [
-      356.76910620101876,
-      277.48708260079246,
-      356.7691062010188
+      186.84132737200918,
+      130.31587737213712,
+      -77.14835658369802
     ],
     "target": [
-      0,
-      0,
-      0
+      84.01305748893128,
+      1.3500056249367207,
+      -0.7562797088035051
     ],
     "fov": 60
   },
   "projections": [
     {
-      "id": "a0ca925b-1b65-4724-94be-59b16c44d0df",
-      "name": "Screenshot 2026-02-13 at 13.06.40",
-      "imagePath": "projections/Screenshot 2026-02-13 at 13.06.40.png",
+      "id": "9a2455f6-309d-4cab-9263-a394ae7dbc18",
+      "name": "Frauenstreiktag 1994 - Petra Gall 1",
+      "imagePath": "projections/Frauenstreiktag 1994 - Petra Gall 1.jpg",
       "transform": {
         "position": [
-          -67.8332,
-          75.8261,
-          304.6093
+          93.9446569245643,
+          1.5,
+          0.4016643043435713
         ],
         "rotation": [
-          -0.22590320107338208,
-          0.3699155536431902,
-          0.09047564089263804
+          -0.12881778745299993,
+          1.453767540422523,
+          0.1279462836252996
         ]
       },
-      "fov": 79,
-      "near": 1,
-      "far": 522,
+      "fov": 34.1,
+      "near": 5,
+      "far": 118,
+      "visible": true
+    },
+    {
+      "id": "18e94540-16e0-430d-91b3-d5b9cb05e8dd",
+      "name": "Frauenstreiktag 1994 - Petra Gall 2",
+      "imagePath": "projections/Frauenstreiktag 1994 - Petra Gall 2.jpg",
+      "transform": {
+        "position": [
+          76.54257117348898,
+          1.5,
+          -9.27227493479051
+        ],
+        "rotation": [
+          2.021915642539689,
+          1.4674232515941255,
+          -2.0606716434887353
+        ]
+      },
+      "fov": 26,
+      "near": 5,
+      "far": 40,
+      "visible": true
+    },
+    {
+      "id": "978622eb-6b2d-4283-a6c9-d0d8f034e932",
+      "name": "Wähl Liebe - Winter CSD 1",
+      "imagePath": "projections/Wähl Liebe - Winter CSD 1.jpg",
+      "transform": {
+        "position": [
+          -109.77713715381816,
+          2,
+          11.124116546910503
+        ],
+        "rotation": [
+          0.6205279578255315,
+          -1.4051936341318303,
+          0.6140260830941775
+        ]
+      },
+      "fov": 24.5,
+      "near": 5,
+      "far": 85,
+      "visible": true
+    },
+    {
+      "id": "c13cf83e-790c-4416-9dc9-2e4789418544",
+      "name": "Wähl Liebe - Winter CSD 2",
+      "imagePath": "projections/Wähl Liebe - Winter CSD 2.jpg",
+      "transform": {
+        "position": [
+          -59.15606179667913,
+          1.7,
+          -95.74925600547783
+        ],
+        "rotation": [
+          -3.1321086593345244,
+          -0.32084690251981657,
+          -3.13860160217133
+        ]
+      },
+      "fov": 31,
+      "near": 5,
+      "far": 62,
+      "visible": true
+    },
+    {
+      "id": "06318c80-13d6-425a-8fdd-974597ae66d2",
+      "name": "Wähl Liebe - Winter CSD 3",
+      "imagePath": "projections/Wähl Liebe - Winter CSD 3.jpg",
+      "transform": {
+        "position": [
+          -89.75376365010135,
+          1.5,
+          23.019786691505697
+        ],
+        "rotation": [
+          0.28732223075717356,
+          -0.8734761540362604,
+          0.194835149589428
+        ]
+      },
+      "fov": 53.5,
+      "near": 5,
+      "far": 120,
       "visible": true
     }
   ]
