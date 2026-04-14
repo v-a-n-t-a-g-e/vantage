@@ -1,9 +1,8 @@
-import type { MemoryFS } from '@/lib/project/memoryFS.ts'
+import type { ProjectHandle } from '@/lib/project/projectHandle.ts'
 import type { RecentProject } from '@/lib/project/handleStore.ts'
 
 type ProjectState = {
-  directoryHandle: FileSystemDirectoryHandle | null
-  memoryFS: MemoryFS | null
+  handle: ProjectHandle | null
   projectName: string | null
   dirty: boolean
   busy: boolean
@@ -11,8 +10,7 @@ type ProjectState = {
 }
 
 export const projectState: ProjectState = $state({
-  directoryHandle: null,
-  memoryFS: null,
+  handle: null,
   projectName: null,
   dirty: false,
   busy: false,

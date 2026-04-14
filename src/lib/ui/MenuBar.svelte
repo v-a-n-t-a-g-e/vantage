@@ -4,6 +4,8 @@
   import {
     saveProject,
     openProject,
+    importProject,
+    exportProject,
     newProject,
     openRecentProject,
     exampleProjects,
@@ -27,6 +29,7 @@
   const fileOptions = $derived<MenuItem[]>([
     { label: 'New', shortcut: 'Cmd+N', action: newProject },
     { label: 'Open', shortcut: 'Cmd+O', action: openProject },
+    { label: 'Import', shortcut: 'Cmd+I', action: importProject },
     {
       label: 'Open Recent',
       disabled: projectState.recentProjects.length === 0,
@@ -43,6 +46,7 @@
       })),
     },
     { label: 'Save', shortcut: 'Cmd+S', action: saveProject },
+    { label: 'Export', action: exportProject },
   ])
 
   const editOptions = $derived<MenuItem[]>([

@@ -1,16 +1,19 @@
 import { sceneState, sceneActions, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
 import { projectState } from '@/lib/project/projectState.svelte.ts'
-import {
-  serializeScene,
-  deserializeScene,
-  deserializeProjections,
-} from '@/lib/project/serializer.ts'
-import { createProjectFS, supportsNativeFS } from '@/lib/project/fileSystem.ts'
-import type { ProjectFS } from '@/lib/project/fileSystem.ts'
-import { createMemoryFS, exportAsZip, downloadBlob } from '@/lib/project/memoryFS.ts'
-import { addRecentHandle, getRecentHandles } from '@/lib/project/handleStore.ts'
+import { serializeScene, deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
 import { validateManifest } from '@/lib/project/validateManifest.ts'
+import { addRecentHandle, getRecentHandles } from '@/lib/project/handleStore.ts'
+import { supportsNativeFS } from '@/lib/project/fileSystem.ts'
+import {
+  openProject as pickDirectory,
+  importProject as pickImportFile,
+  createHandleFromDirectory,
+  createHandleFromFetch,
+  type ProjectHandle,
+} from '@/lib/project/projectHandle.ts'
+import { exportAsZip, downloadBlob, createMemoryFS } from '@/lib/project/memoryFS.ts'
 import { PROJECT_DIRS } from '@/lib/constants.ts'
+import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 
 let getCameraState:
   | (() => {
@@ -23,6 +26,8 @@ let getCameraState:
 export function setGetCameraState(fn: typeof getCameraState) {
   getCameraState = fn
 }
+
+// ── Saving ──
 
 async function ensureDirectories(fs: ProjectFS) {
   for (const dir of PROJECT_DIRS) {
@@ -40,7 +45,6 @@ async function writeProjectFiles(fs: ProjectFS) {
     }
   }
 
-  // Write projection images
   for (const item of sceneState.projections) {
     if (item.imageBlob) {
       await fs.writeFile(item.imagePath, item.imageBlob)
@@ -55,61 +59,62 @@ async function writeProjectFiles(fs: ProjectFS) {
   await fs.writeFile('scene.json', JSON.stringify(manifest, null, 2))
 }
 
-async function recordRecent(handle: FileSystemDirectoryHandle) {
-  await addRecentHandle(handle)
-  projectState.recentProjects = await getRecentHandles()
-}
-
-// ── Save ──
-
 export async function saveProject() {
-  if (supportsNativeFS()) {
-    if (!projectState.directoryHandle) return saveProjectAs()
-    projectState.busy = true
-    try {
-      const fs = createProjectFS(projectState.directoryHandle)
-      await writeProjectFiles(fs)
-      await recordRecent(projectState.directoryHandle)
-      projectState.dirty = false
-    } finally {
-      projectState.busy = false
-    }
-  } else {
-    projectState.busy = true
-    try {
-      const fs = projectState.memoryFS ?? createMemoryFS()
-      projectState.memoryFS = fs
-      await writeProjectFiles(fs)
-      const zip = await exportAsZip(fs)
-      downloadBlob(zip, `${projectState.projectName ?? 'project'}.zip`)
-      projectState.dirty = false
-    } finally {
-      projectState.busy = false
-    }
+  const handle = projectState.handle
+  if (!handle) {
+    // No handle yet — prompt for a directory (Save As)
+    return saveProjectAs()
+  }
+
+  projectState.busy = true
+  try {
+    await writeProjectFiles(handle.fs)
+    await handle.save()
+    if (handle.directoryHandle) await recordRecent(handle.directoryHandle)
+    projectState.dirty = false
+  } finally {
+    projectState.busy = false
   }
 }
 
 export async function saveProjectAs() {
   if (supportsNativeFS()) {
-    let handle: FileSystemDirectoryHandle
-    try {
-      handle = await window.showDirectoryPicker({ mode: 'readwrite' })
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return // user cancelled
-      console.error('Failed to pick directory:', err)
-      return
-    }
-    projectState.directoryHandle = handle
+    const handle = await pickDirectory()
+    if (!handle) return
+    projectState.handle = handle
     projectState.projectName = handle.name
     await saveProject()
   } else {
-    // Fallback: just save as zip — user picks location via browser download
+    // Fallback: save current state as ZIP
     if (!projectState.projectName) projectState.projectName = 'project'
-    await saveProject()
+    projectState.busy = true
+    try {
+      const fs = createMemoryFS()
+      await writeProjectFiles(fs)
+      const zip = await exportAsZip(fs)
+      downloadBlob(zip, `${projectState.projectName}.zip`)
+      projectState.dirty = false
+    } finally {
+      projectState.busy = false
+    }
   }
 }
 
-// ── Open ──
+export async function exportProject() {
+  const handle = projectState.handle
+  if (!handle) return
+
+  const name = projectState.projectName ?? 'project'
+  projectState.busy = true
+  try {
+    await writeProjectFiles(handle.fs)
+    await handle.export(`${name}.zip`)
+  } finally {
+    projectState.busy = false
+  }
+}
+
+// ── Opening ──
 
 export async function openProject() {
   if (projectState.dirty) {
@@ -117,33 +122,32 @@ export async function openProject() {
   }
 
   if (supportsNativeFS()) {
-    let handle: FileSystemDirectoryHandle
-    try {
-      handle = await window.showDirectoryPicker({ mode: 'readwrite' })
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return // user cancelled
-      console.error('Failed to pick directory:', err)
-      return
-    }
+    const handle = await pickDirectory()
+    if (!handle) return
     await loadFromHandle(handle)
   } else {
-    const files = await pickDirectory()
-    if (!files.length) return
-    await loadFromFiles(files)
+    // Fallback: import from file (ZIP)
+    const handle = await pickImportFile()
+    if (!handle) return
+    await loadFromHandle(handle)
   }
 }
 
-function pickDirectory(): Promise<File[]> {
-  return new Promise((resolve) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.webkitdirectory = true
-    input.addEventListener('change', () => {
-      resolve(input.files ? Array.from(input.files) : [])
-    })
-    input.addEventListener('cancel', () => resolve([]))
-    input.click()
-  })
+export async function importProject() {
+  if (projectState.dirty) {
+    if (!confirm('You have unsaved changes. Discard them?')) return
+  }
+
+  const handle = await pickImportFile()
+  if (!handle) return
+  await loadFromHandle(handle)
+}
+
+// ── Loading internals ──
+
+async function recordRecent(dirHandle: FileSystemDirectoryHandle) {
+  await addRecentHandle(dirHandle)
+  projectState.recentProjects = await getRecentHandles()
 }
 
 function applySceneSettings(manifest: import('@/lib/project/types.ts').SceneManifest) {
@@ -151,76 +155,53 @@ function applySceneSettings(manifest: import('@/lib/project/types.ts').SceneMani
   sceneState.clearColor = manifest.clearColor ?? SCENE_DEFAULTS.clearColor
 }
 
-async function loadFromFS(readFile: (path: string) => Promise<File>, finalizeState: () => void) {
-  projectState.busy = true
-  try {
-    const sceneFile = await readFile('scene.json')
-    const raw = JSON.parse(await sceneFile.text())
-    const manifest = validateManifest(raw)
+async function loadFromFS(readFile: (path: string) => Promise<File>) {
+  const sceneFile = await readFile('scene.json')
+  const raw = JSON.parse(await sceneFile.text())
+  const manifest = validateManifest(raw)
 
-    sceneActions.value?.clearScene()
+  sceneActions.value?.clearScene()
 
-    const objects = await deserializeScene(manifest, readFile)
-    for (const obj of objects) {
-      const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
-      if (item) {
-        item.id = obj.id
-        item.visible = obj.visible
-        item.object.visible = obj.visible
-      }
+  const objects = await deserializeScene(manifest, readFile)
+  for (const obj of objects) {
+    const item = sceneActions.value?.addObjectSilent(obj.name, obj.object, obj.source)
+    if (item) {
+      item.id = obj.id
+      item.visible = obj.visible
+      item.object.visible = obj.visible
     }
+  }
 
-    if (manifest.projections?.length) {
-      const projections = await deserializeProjections(manifest.projections, readFile)
-      for (const p of projections) {
-        const item = sceneActions.value?.addProjectionSilent(p.name, p.projection, p.imagePath)
-        if (item) {
-          item.id = p.id
-          item.visible = p.visible
-          if (!p.visible) {
-            for (const obj of sceneState.objects) {
-              p.projection.unproject(obj.object)
-            }
+  if (manifest.projections?.length) {
+    const projections = await deserializeProjections(manifest.projections, readFile)
+    for (const p of projections) {
+      const item = sceneActions.value?.addProjectionSilent(p.name, p.projection, p.imagePath)
+      if (item) {
+        item.id = p.id
+        item.visible = p.visible
+        if (!p.visible) {
+          for (const obj of sceneState.objects) {
+            p.projection.unproject(obj.object)
           }
         }
       }
     }
+  }
 
-    applySceneSettings(manifest)
-    finalizeState()
+  applySceneSettings(manifest)
+}
+
+async function loadFromHandle(handle: ProjectHandle) {
+  projectState.busy = true
+  try {
+    await loadFromFS(handle.fs.readFile)
+    projectState.handle = handle
+    projectState.projectName = handle.name
+    if (handle.directoryHandle) await recordRecent(handle.directoryHandle)
     projectState.dirty = false
   } finally {
     projectState.busy = false
   }
-}
-
-async function loadFromFiles(files: File[]) {
-  const fs = createMemoryFS(files)
-  const firstFile = files[0]
-  const rootDir = firstFile?.webkitRelativePath.split('/')[0]
-
-  await loadFromFS(
-    (path) => fs.readFile(path),
-    () => {
-      projectState.memoryFS = fs
-      projectState.directoryHandle = null
-      projectState.projectName = rootDir ?? 'project'
-    }
-  )
-}
-
-async function loadFromHandle(handle: FileSystemDirectoryHandle) {
-  const fs = createProjectFS(handle)
-
-  await loadFromFS(
-    (path) => fs.readFile(path),
-    () => {
-      projectState.directoryHandle = handle
-      projectState.memoryFS = null
-      projectState.projectName = handle.name
-    }
-  )
-  await recordRecent(handle)
 }
 
 // ── New ──
@@ -231,8 +212,7 @@ export async function newProject() {
   }
 
   sceneActions.value?.clearScene()
-  projectState.directoryHandle = null
-  projectState.memoryFS = null
+  projectState.handle = null
   projectState.projectName = null
   projectState.dirty = false
 }
@@ -243,13 +223,14 @@ export async function loadRecentProjects() {
   projectState.recentProjects = await getRecentHandles()
 }
 
-export async function openRecentProject(handle: FileSystemDirectoryHandle) {
+export async function openRecentProject(dirHandle: FileSystemDirectoryHandle) {
   if (projectState.dirty) {
     if (!confirm('You have unsaved changes. Discard them?')) return
   }
   try {
-    const perm = await handle.requestPermission({ mode: 'readwrite' })
+    const perm = await dirHandle.requestPermission({ mode: 'readwrite' })
     if (perm !== 'granted') return
+    const handle = createHandleFromDirectory(dirHandle)
     await loadFromHandle(handle)
   } catch {
     // Permission denied or load error — keep entry in recents list
@@ -272,7 +253,8 @@ export async function autoLoadLastProject() {
       await loadDemoProject()
       return
     }
-    await loadFromHandle(last.handle)
+    const handle = createHandleFromDirectory(last.handle)
+    await loadFromHandle(handle)
   } catch {
     await loadDemoProject()
   }
@@ -291,20 +273,6 @@ export async function loadDemoProject(basePath = './demo') {
   if (projectState.dirty) {
     if (!confirm('You have unsaved changes. Discard them?')) return
   }
-  await loadExampleFromUrl(basePath)
-}
-
-async function loadExampleFromUrl(basePath: string) {
-  const readFile = async (path: string): Promise<File> => {
-    const r = await fetch(`${basePath}/${path}`)
-    if (!r.ok) throw new Error(`Failed to fetch ${path}`)
-    const blob = await r.blob()
-    return new File([blob], path.split('/').pop()!)
-  }
-
-  await loadFromFS(readFile, () => {
-    projectState.directoryHandle = null
-    projectState.memoryFS = null
-    projectState.projectName = basePath.split('/').pop() ?? 'example'
-  })
+  const handle = createHandleFromFetch(basePath)
+  await loadFromHandle(handle)
 }
