@@ -13,11 +13,20 @@
   "include": [
     "src/lib/index.ts",
     "src/lib/types.ts",
+    "src/lib/constants.ts",
+    "src/lib/gltfLoader.ts",
     "src/lib/project/types.ts",
-    "src/lib/scene/projection/**/*.ts",
+    "src/lib/project/serializer.ts",
+    "src/lib/project/fileSystem.ts",
+    "src/lib/project/memoryFS.ts",
+    "src/lib/project/validateManifest.ts",
+    "src/lib/project/projectHandle.ts",
+    "src/lib/scene/SceneViewer.ts",
+    "src/lib/scene/CameraRig.ts",
+    "src/lib/scene/DefaultEnvironment.ts",
+    "src/lib/scene/InfiniteGrid.ts",
     "src/lib/scene/layers.ts",
     "src/lib/scene/themeColors.ts",
-    "src/lib/project/serializer.ts",
-    "src/lib/gltfLoader.ts"
+    "src/lib/scene/projection/**/*.ts"
   ]
 }

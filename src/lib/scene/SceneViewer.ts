@@ -4,7 +4,9 @@ import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
 import { UI_LAYER } from '@/lib/scene/layers.ts'
 import { VantageProjection } from '@/lib/scene/projection/index.ts'
 import { CAMERA_DEFAULTS } from '@/lib/constants.ts'
-import type { CameraState } from '@/lib/project/types.ts'
+import { deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
+import { validateManifest } from '@/lib/project/validateManifest.ts'
+import type { CameraState, SceneManifest } from '@/lib/project/types.ts'
 
 export interface SceneViewOptions {
   showGrid?: boolean
@@ -134,6 +136,36 @@ export class SceneViewer {
     this.camera.fov = state.fov
     this.camera.updateProjectionMatrix()
     this.rig.update()
+  }
+
+  /**
+   * Load a vantage project by providing a `readFile` callback that resolves
+   * project-relative paths (e.g. `"scene.json"`, `"models/house.glb"`).
+   *
+   * Works with any storage backend — pass `fs.readFile` from `createProjectFS`,
+   * `createMemoryFS`, `loadZip`, or a custom fetch-based implementation.
+   *
+   * Returns the parsed manifest so auxiliary apps can inspect project metadata.
+   */
+  async openProject(readFile: (path: string) => Promise<File>): Promise<SceneManifest> {
+    const file = await readFile('scene.json')
+    const raw = JSON.parse(await file.text())
+    const manifest = validateManifest(raw)
+
+    const objects = await deserializeScene(manifest, readFile)
+    const projections = manifest.projections
+      ? await deserializeProjections(manifest.projections, readFile)
+      : []
+
+    this.loadScene(
+      objects.map((o) => ({ object: o.object, visible: o.visible })),
+      projections.map((p) => ({ projection: p.projection, visible: p.visible })),
+      { showGrid: manifest.showGrid, clearColor: manifest.clearColor }
+    )
+
+    if (manifest.camera) this.setCameraState(manifest.camera)
+
+    return manifest
   }
 
   dispose() {

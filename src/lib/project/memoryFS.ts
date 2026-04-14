@@ -1,4 +1,4 @@
-import { zipSync } from 'fflate'
+import { zipSync, unzipSync } from 'fflate'
 import type { ProjectFS } from '@/lib/project/fileSystem.ts'
 
 export function createMemoryFS(files?: File[]): MemoryFS {
@@ -14,6 +14,10 @@ export function createMemoryFS(files?: File[]): MemoryFS {
     }
   }
 
+  return memoryFSFromStore(store)
+}
+
+function memoryFSFromStore(store: Map<string, Blob>): MemoryFS {
   const fs: MemoryFS = {
     store,
 
@@ -34,6 +38,38 @@ export function createMemoryFS(files?: File[]): MemoryFS {
   }
 
   return fs
+}
+
+/**
+ * Create a MemoryFS from a ZIP file.
+ * If the ZIP contains a single root directory, it is automatically stripped
+ * so that paths match the expected project layout (e.g. `scene.json` at the root).
+ */
+export function loadZip(data: ArrayBuffer): MemoryFS {
+  const unzipped = unzipSync(new Uint8Array(data))
+  const store = new Map<string, Blob>()
+
+  const paths = Object.keys(unzipped).filter((p) => !p.endsWith('/'))
+
+  // Detect a common single-directory prefix (e.g. "myproject/scene.json" → strip "myproject/")
+  let prefix = ''
+  if (paths.length > 0) {
+    const firstSlash = paths[0].indexOf('/')
+    if (firstSlash >= 0) {
+      const candidate = paths[0].slice(0, firstSlash + 1)
+      if (paths.every((p) => p.startsWith(candidate))) {
+        prefix = candidate
+      }
+    }
+  }
+
+  for (const [path, content] of Object.entries(unzipped)) {
+    if (path.endsWith('/')) continue // skip directory entries
+    const stripped = prefix ? path.slice(prefix.length) : path
+    if (stripped) store.set(stripped, new Blob([content.buffer as ArrayBuffer]))
+  }
+
+  return memoryFSFromStore(store)
 }
 
 export interface MemoryFS extends ProjectFS {

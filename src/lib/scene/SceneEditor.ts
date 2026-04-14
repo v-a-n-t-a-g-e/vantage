@@ -184,7 +184,6 @@ export class SceneEditor extends SceneViewer {
     for (const p of sceneState.projections) {
       p.projection.dispose()
     }
-    this.sparkRenderer?.dispose()
   }
 
   // ── Camera state (editor returns Vector3-like objects for projectActions) ──
