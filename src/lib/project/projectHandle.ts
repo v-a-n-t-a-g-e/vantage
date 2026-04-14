@@ -1,5 +1,11 @@
 import { createProjectFS, supportsNativeFS, type ProjectFS } from '@/lib/project/fileSystem.ts'
-import { createMemoryFS, loadZip, exportAsZip, downloadBlob, type MemoryFS } from '@/lib/project/memoryFS.ts'
+import {
+  createMemoryFS,
+  loadZip,
+  exportAsZip,
+  downloadBlob,
+  type MemoryFS,
+} from '@/lib/project/memoryFS.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
 import { serializeScene } from '@/lib/project/serializer.ts'
 import { FILE_PATTERNS, PROJECT_DIRS } from '@/lib/constants.ts'
@@ -11,6 +17,8 @@ export interface ProjectHandle {
   name: string
   /** Whether `save()` writes in-place. False for ZIP and model imports. */
   canSaveInPlace: boolean
+  /** The underlying directory handle, if opened from a native directory. */
+  directoryHandle?: FileSystemDirectoryHandle
   /**
    * Save project data. If the project was opened from a native directory,
    * writes in-place. Otherwise exports and downloads as a ZIP.
@@ -32,7 +40,6 @@ export async function openProject(): Promise<ProjectHandle | null> {
 
   let handle: FileSystemDirectoryHandle
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' })
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return null
@@ -40,7 +47,7 @@ export async function openProject(): Promise<ProjectHandle | null> {
   }
 
   const fs = createProjectFS(handle)
-  return createNativeHandle(fs, handle.name)
+  return createNativeHandle(fs, handle.name, handle)
 }
 
 /**
@@ -78,15 +85,17 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
   // Check for directory drop (File System Access API)
   if ('getAsFileSystemHandle' in firstItem) {
     try {
-      const handle = await (firstItem as DataTransferItem & { getAsFileSystemHandle(): Promise<FileSystemHandle> }).getAsFileSystemHandle()
+      const handle = await (
+        firstItem as DataTransferItem & { getAsFileSystemHandle(): Promise<FileSystemHandle> }
+      ).getAsFileSystemHandle()
       if (handle && handle.kind === 'directory') {
         const dirHandle = handle as FileSystemDirectoryHandle
         // Request readwrite permission
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const perm = await (dirHandle as any).requestPermission({ mode: 'readwrite' })
         if (perm === 'granted') {
           const fs = createProjectFS(dirHandle)
-          return createNativeHandle(fs, dirHandle.name)
+          return createNativeHandle(fs, dirHandle.name, dirHandle)
         }
       }
     } catch {
@@ -115,13 +124,71 @@ export async function exportProject(handle: ProjectHandle, filename?: string): P
   await handle.export(filename)
 }
 
+/**
+ * Create a ProjectHandle from an existing FileSystemDirectoryHandle.
+ * Used for re-opening recent projects or restoring from a stored handle.
+ */
+export function createHandleFromDirectory(dirHandle: FileSystemDirectoryHandle): ProjectHandle {
+  const fs = createProjectFS(dirHandle)
+  return createNativeHandle(fs, dirHandle.name, dirHandle)
+}
+
+/**
+ * Create a read-only ProjectHandle backed by a fetch-based readFile callback.
+ * Used for loading demo/example projects from a URL.
+ */
+export function createHandleFromFetch(basePath: string): ProjectHandle {
+  const name = basePath.split('/').pop() ?? 'example'
+  const memFS = createMemoryFS()
+
+  const readFile = async (path: string): Promise<File> => {
+    // Check memory FS first (for files written after loading)
+    try {
+      return await memFS.readFile(path)
+    } catch {
+      // Fall through to fetch
+    }
+    const r = await fetch(`${basePath}/${path}`)
+    if (!r.ok) throw new Error(`Failed to fetch ${path}`)
+    const blob = await r.blob()
+    // Cache in memFS so it's included in exports
+    await memFS.writeFile(path, blob)
+    return new File([blob], path.split('/').pop()!)
+  }
+
+  const fs: ProjectFS = {
+    readFile,
+    writeFile: (path, data) => memFS.writeFile(path, data),
+    mkdir: () => memFS.mkdir(''),
+  }
+
+  return {
+    fs,
+    name,
+    canSaveInPlace: false,
+    async save() {
+      const zip = await exportAsZip(memFS)
+      downloadBlob(zip, `${name}.zip`)
+    },
+    async export(filename?: string) {
+      const zip = await exportAsZip(memFS)
+      downloadBlob(zip, filename ?? `${name}.zip`)
+    },
+  }
+}
+
 // ── Internal helpers ──
 
-function createNativeHandle(fs: ProjectFS, name: string): ProjectHandle {
+function createNativeHandle(
+  fs: ProjectFS,
+  name: string,
+  dirHandle: FileSystemDirectoryHandle
+): ProjectHandle {
   return {
     fs,
     name,
     canSaveInPlace: true,
+    directoryHandle: dirHandle,
     async save() {
       // Native FS writes are immediate — nothing extra to do.
       // The caller is responsible for writing their data via handle.fs.writeFile().
@@ -199,7 +266,7 @@ async function scaffoldFromModel(file: File): Promise<MemoryFS> {
   return fs
 }
 
-async function nativeToMemoryFS(fs: ProjectFS, name: string): Promise<MemoryFS> {
+async function nativeToMemoryFS(fs: ProjectFS, _name: string): Promise<MemoryFS> {
   // Read scene.json to discover all referenced files
   const sceneFile = await fs.readFile('scene.json')
   const manifest = JSON.parse(await sceneFile.text())

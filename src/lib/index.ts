@@ -39,6 +39,8 @@ export {
   onProjectDrop,
   saveProject,
   exportProject,
+  createHandleFromDirectory,
+  createHandleFromFetch,
 } from './project/projectHandle'
 
 // Loaders
