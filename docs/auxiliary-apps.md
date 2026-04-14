@@ -193,6 +193,78 @@ if (handle) {
 }
 ```
 
+## Recent Projects
+
+The `createRecentProjects` factory creates a per-app recent projects store backed by IndexedDB. Each app uses a unique name so recent lists don't collide between tools.
+
+```ts
+import {
+  createRecentProjects,
+  createHandleFromDirectory,
+  openProject,
+  type ProjectHandle,
+  type RecentProject,
+} from '@krisenstab/vantage'
+
+const recents = createRecentProjects('my-transition-tool')
+```
+
+### Storing a recent project
+
+After opening a project via `openProject()` or `onProjectDrop()`, store the directory handle:
+
+```ts
+const handle = await openProject()
+if (handle?.directoryHandle) {
+  await recents.add(handle.directoryHandle)
+}
+```
+
+Only native directory handles can be stored — ZIP and model imports don't have one (`handle.directoryHandle` will be `undefined`).
+
+### Listing and re-opening
+
+```ts
+const list = await recents.get() // RecentProject[] — most recent first
+
+async function openRecent(recent: RecentProject) {
+  const perm = await recent.handle.requestPermission({ mode: 'readwrite' })
+  if (perm !== 'granted') return
+  const handle = createHandleFromDirectory(recent.handle)
+  await viewer.openProject(handle.fs.readFile)
+  // Store again to move it to the front
+  await recents.add(recent.handle)
+}
+```
+
+### Auto-loading the last project
+
+A common pattern is to automatically re-open the last project on app startup:
+
+```ts
+async function autoLoad(): Promise<boolean> {
+  const [last] = await recents.get()
+  if (!last) return false
+  try {
+    const perm = await last.handle.requestPermission({ mode: 'readwrite' })
+    if (perm !== 'granted') return false
+    const handle = createHandleFromDirectory(last.handle)
+    await viewer.openProject(handle.fs.readFile)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// On startup:
+const loaded = await autoLoad()
+if (!loaded) {
+  // Show welcome screen or open picker
+}
+```
+
+Recent projects require the File System Access API (Chromium browsers). On unsupported browsers, `recents.get()` returns an empty array and `recents.add()` is a silent no-op.
+
 ## Creating a Project from a Single 3D Model
 
 `importProject()` handles this automatically when the user selects a `.glb` or `.gltf` file. It:
@@ -229,18 +301,16 @@ await fs.writeFile('scene.json', JSON.stringify(manifest, null, 2))
 
 ## Loading from a URL
 
-For demos or hosted projects, provide a custom `readFile` callback:
+For demos or hosted projects, use `createHandleFromFetch` to create a handle backed by HTTP requests. Fetched files are cached internally, so exports include everything that was loaded:
 
 ```ts
-const basePath = '/demo'
-const readFile = async (path: string): Promise<File> => {
-  const res = await fetch(`${basePath}/${path}`)
-  if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`)
-  const blob = await res.blob()
-  return new File([blob], path.split('/').pop()!)
-}
+import { SceneViewer, createHandleFromFetch } from '@krisenstab/vantage'
 
-await viewer.openProject(readFile)
+const handle = createHandleFromFetch('/demo')
+await viewer.openProject(handle.fs.readFile)
+
+// Export includes all fetched files
+await handle.export('demo-copy.zip')
 ```
 
 ## Camera Control
@@ -278,6 +348,11 @@ import {
   loadTexture,             // Image/video texture loader
   UI_LAYER,                // Layer constant for UI elements
 
+  // Recent projects
+  createRecentProjects,    // Per-app recent projects store (IndexedDB)
+  createHandleFromDirectory, // Re-open a stored directory handle
+  createHandleFromFetch,   // Load project from URL
+
   // Project I/O (low-level)
   createProjectFS,         // Native directory FS
   createMemoryFS,          // In-memory FS
@@ -300,9 +375,12 @@ import {
   SceneViewer,
   openProject,
   importProject,
+  createRecentProjects,
+  createHandleFromDirectory,
   supportsNativeFS,
   type ProjectHandle,
   type CameraState,
+  type RecentProject,
 } from '@krisenstab/vantage'
 
 interface Transition {
@@ -314,6 +392,7 @@ interface Transition {
 
 const canvas = document.getElementById('viewport') as HTMLCanvasElement
 const viewer = new SceneViewer(canvas)
+const recents = createRecentProjects('camera-transitions')
 
 let handle: ProjectHandle | null = null
 let transitions: Transition[] = []
@@ -330,8 +409,20 @@ async function importFile() {
   if (handle) await load()
 }
 
+async function openRecent(recent: RecentProject) {
+  const perm = await recent.handle.requestPermission({ mode: 'readwrite' })
+  if (perm !== 'granted') return
+  handle = createHandleFromDirectory(recent.handle)
+  await load()
+}
+
 async function load() {
   await viewer.openProject(handle!.fs.readFile)
+
+  // Track in recent projects
+  if (handle!.directoryHandle) {
+    await recents.add(handle!.directoryHandle)
+  }
 
   // Load existing transition data if present
   try {

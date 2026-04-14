@@ -30,6 +30,7 @@ export {
   loadZip,
 } from './project/memoryFS'
 export { validateManifest, ManifestValidationError } from './project/validateManifest'
+export { createRecentProjects, type RecentProject } from './project/handleStore'
 
 // Project helpers
 export {

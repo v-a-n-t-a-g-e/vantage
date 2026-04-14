@@ -21,6 +21,7 @@
     "src/lib/project/memoryFS.ts",
     "src/lib/project/validateManifest.ts",
     "src/lib/project/projectHandle.ts",
+    "src/lib/project/handleStore.ts",
     "src/lib/scene/SceneViewer.ts",
     "src/lib/scene/CameraRig.ts",
     "src/lib/scene/DefaultEnvironment.ts",
