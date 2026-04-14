@@ -7,7 +7,7 @@
 
   onMount(() => {
     const editor = new SceneEditor(canvas)
-    setGetCameraState(() => editor.getCameraState())
+    setGetCameraState(() => editor.getEditorCameraState())
     return () => {
       setGetCameraState(null)
       editor.dispose()

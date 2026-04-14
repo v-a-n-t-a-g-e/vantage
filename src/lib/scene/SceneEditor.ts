@@ -1,9 +1,8 @@
 import * as THREE from 'three'
+import { SceneViewer } from '@/lib/scene/SceneViewer.ts'
 import { sceneState, setSceneActions, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
 import type { SceneObject, SceneObjectSource, ProjectionItem, Tool } from '@/lib/types.ts'
 import { pushCommand, clearHistory } from '@/lib/history.svelte.ts'
-import { DefaultEnvironment } from '@/lib/scene/DefaultEnvironment.ts'
-import { CameraRig } from '@/lib/scene/CameraRig.ts'
 import { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { AimModeController } from '@/lib/scene/AimModeController.ts'
 import { PickingController } from '@/lib/scene/PickingController.ts'
@@ -11,63 +10,28 @@ import { SelectionManager } from '@/lib/scene/SelectionManager.ts'
 import { UI_LAYER } from '@/lib/scene/layers.ts'
 import { VantageProjection } from '@/lib/scene/projection'
 import { importFiles } from '@/lib/fileImport.ts'
-import { CAMERA_DEFAULTS } from '@/lib/constants.ts'
 
-export class SceneEditor {
-  private renderer: THREE.WebGLRenderer
-  private scene: THREE.Scene
-  private camera: THREE.PerspectiveCamera
-  private rig: CameraRig
+export class SceneEditor extends SceneViewer {
   private gizmo: TransformGizmo
   private selectionManager: SelectionManager
   private lastTool: Tool = 'cursor'
-  private animId = 0
-  private ro: ResizeObserver
   private canvas: HTMLCanvasElement
-  private clock = new THREE.Timer()
-  private env: DefaultEnvironment
   private aimController: AimModeController
   private pickingController: PickingController
   private ac = new AbortController()
 
   constructor(canvas: HTMLCanvasElement) {
+    super(canvas)
     this.canvas = canvas
 
-    // Renderer
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
-    this.renderer.setPixelRatio(window.devicePixelRatio)
-    this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
-    this.renderer.setClearColor(0xf3e7fd)
-
-    // Scene & camera
-    this.scene = new THREE.Scene()
-    this.camera = new THREE.PerspectiveCamera(
-      CAMERA_DEFAULTS.fov,
-      canvas.clientWidth / canvas.clientHeight,
-      CAMERA_DEFAULTS.near,
-      CAMERA_DEFAULTS.far
-    )
-    this.camera.position.set(...CAMERA_DEFAULTS.position)
-    this.camera.lookAt(0, 0, 0)
-    this.camera.layers.enable(UI_LAYER)
-
-    // Controls
-    this.rig = new CameraRig(this.camera, canvas)
-    this.rig.enableDamping = true
-
+    // Transform gizmo
     this.gizmo = new TransformGizmo(this.camera, canvas, this.rig)
-    // TransformControls uses a shared module-level Raycaster (default layer 0 only).
-    // Enabling UI_LAYER on it lets the gizmo hit-test its own objects after we move them.
     this.gizmo.getRaycaster().layers.enable(UI_LAYER)
     const gizmoHelper = this.gizmo.getHelper()
     gizmoHelper.traverse((o) => o.layers.set(UI_LAYER))
     this.scene.add(gizmoHelper)
 
     this.selectionManager = new SelectionManager(this.scene, this.gizmo)
-
-    // Default scene content
-    this.env = new DefaultEnvironment()
-    this.scene.add(this.env)
 
     this.aimController = new AimModeController({
       camera: this.camera,
@@ -170,16 +134,67 @@ export class SceneEditor {
       },
       opts
     )
+  }
 
-    // Resize
-    this.ro = new ResizeObserver(() => {
-      this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
-      this.camera.aspect = canvas.clientWidth / canvas.clientHeight
-      this.camera.updateProjectionMatrix()
-    })
-    this.ro.observe(canvas)
+  // ── Render loop hooks ──
 
-    this.animate()
+  protected override tickCamera(deltaMs: number): void {
+    // Tool transitions
+    if (sceneState.tool !== this.lastTool) {
+      const prev = this.lastTool
+      this.lastTool = sceneState.tool
+      if (sceneState.tool === 'aim') {
+        this.aimController.enter()
+      } else if (prev === 'aim') {
+        this.aimController.exit()
+      }
+    }
+
+    if (sceneState.tool === 'aim') {
+      this.aimController.update(deltaMs)
+    } else {
+      this.rig.tick()
+    }
+  }
+
+  protected override onTick(): void {
+    this.selectionManager.update()
+  }
+
+  protected override updateProjections(): void {
+    for (const p of sceneState.projections) {
+      if (p.visible) p.projection.update(this.renderer, this.scene)
+    }
+  }
+
+  protected override updateEnvironment(): void {
+    this.env.grid.visible = sceneState.showGrid
+    if (this.env.grid.visible) this.env.grid.update(this.camera)
+    this.renderer.setClearColor(sceneState.clearColor)
+  }
+
+  protected override onDispose(): void {
+    if (sceneState.tool === 'aim') this.aimController.exit()
+    setSceneActions(null)
+    this.ac.abort()
+    this.aimController.dispose()
+    this.pickingController.dispose()
+    this.gizmo.dispose()
+    this.selectionManager.dispose()
+    for (const p of sceneState.projections) {
+      p.projection.dispose()
+    }
+    this.sparkRenderer?.dispose()
+  }
+
+  // ── Camera state (editor returns Vector3-like objects for projectActions) ──
+
+  getEditorCameraState() {
+    return {
+      position: this.camera.position,
+      target: this.rig.target,
+      fov: this.camera.fov,
+    }
   }
 
   // ── Scene object management ──
@@ -316,67 +331,5 @@ export class SceneEditor {
 
   private async handleFiles(files: FileList | null | undefined) {
     await importFiles(files)
-  }
-
-  getCameraState() {
-    return {
-      position: this.camera.position,
-      target: this.rig.target,
-      fov: this.camera.fov,
-    }
-  }
-
-  // ── Render loop ──
-
-  private animate() {
-    this.animId = requestAnimationFrame(() => this.animate())
-    this.clock.update()
-    const deltaMs = this.clock.getDelta() * 1000
-
-    // Tool transitions
-    if (sceneState.tool !== this.lastTool) {
-      const prev = this.lastTool
-      this.lastTool = sceneState.tool
-      if (sceneState.tool === 'aim') {
-        this.aimController.enter()
-      } else if (prev === 'aim') {
-        this.aimController.exit()
-      }
-    }
-
-    if (sceneState.tool === 'aim') {
-      this.aimController.update(deltaMs)
-    } else {
-      this.rig.tick()
-    }
-
-    this.selectionManager.update()
-
-    for (const p of sceneState.projections) {
-      if (p.visible) p.projection.update(this.renderer, this.scene)
-    }
-
-    // Sync grid visibility and clear color from state
-    this.env.grid.visible = sceneState.showGrid
-    if (this.env.grid.visible) this.env.grid.update(this.camera)
-    this.renderer.setClearColor(sceneState.clearColor)
-
-    this.renderer.render(this.scene, this.camera)
-  }
-
-  dispose() {
-    if (sceneState.tool === 'aim') this.aimController.exit()
-    setSceneActions(null)
-    cancelAnimationFrame(this.animId)
-    this.ro.disconnect()
-    this.ac.abort()
-    this.aimController.dispose()
-    this.pickingController.dispose()
-    this.gizmo.dispose()
-    this.selectionManager.dispose()
-    for (const p of sceneState.projections) {
-      p.projection.dispose()
-    }
-    this.renderer.dispose()
   }
 }

@@ -1,3 +1,7 @@
+// Scene viewer
+export { SceneViewer } from './scene/SceneViewer'
+export type { SceneViewOptions } from './scene/SceneViewer'
+
 // Projection system
 export { VantageProjection } from './scene/projection/VantageProjection'
 export { default as ProjectionMaterial } from './scene/projection/ProjectionMaterial'
