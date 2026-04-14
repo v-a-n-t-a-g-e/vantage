@@ -1,7 +1,6 @@
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
-import type { SvelteConfig } from '@sveltejs/vite-plugin-svelte'
 
-const config: SvelteConfig = {
+const config = {
   preprocess: vitePreprocess(),
   extensions: ['.svelte', '.svg'],
 }
