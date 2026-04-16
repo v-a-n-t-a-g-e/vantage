@@ -29,25 +29,30 @@ export interface ProjectHandle {
 }
 
 /**
- * Open a vantage project from a native directory picker.
- * Requires browser support for the File System Access API.
+ * Open a vantage project from a directory picker.
+ * Uses the File System Access API when available (Chromium — gives read/write access),
+ * otherwise falls back to `<input webkitdirectory>` (read-only, saves export as ZIP).
  * Returns `null` if the user cancels the picker.
  */
 export async function openProject(): Promise<ProjectHandle | null> {
-  if (!supportsNativeFS()) {
-    throw new Error('Native filesystem access is not supported in this browser')
+  if (supportsNativeFS()) {
+    let handle: FileSystemDirectoryHandle
+    try {
+      handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' })
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return null
+      throw err
+    }
+    const fs = createProjectFS(handle)
+    return createNativeHandle(fs, handle.name, handle)
   }
 
-  let handle: FileSystemDirectoryHandle
-  try {
-    handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' })
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') return null
-    throw err
-  }
-
-  const fs = createProjectFS(handle)
-  return createNativeHandle(fs, handle.name, handle)
+  // Fallback: <input webkitdirectory> — returns all files with webkitRelativePath
+  const files = await pickDirectoryFiles()
+  if (!files || files.length === 0) return null
+  const name = files[0].webkitRelativePath.split('/')[0] || 'project'
+  const fs = createMemoryFS(files)
+  return createMemoryHandle(fs, name)
 }
 
 /**
@@ -82,7 +87,7 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
 
   const firstItem = items[0]
 
-  // Check for directory drop (File System Access API)
+  // Check for directory drop (File System Access API — Chromium)
   if ('getAsFileSystemHandle' in firstItem) {
     try {
       const handle = await (
@@ -90,8 +95,6 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
       ).getAsFileSystemHandle()
       if (handle && handle.kind === 'directory') {
         const dirHandle = handle as FileSystemDirectoryHandle
-        // Request readwrite permission
-
         const perm = await (dirHandle as any).requestPermission({ mode: 'readwrite' })
         if (perm === 'granted') {
           const fs = createProjectFS(dirHandle)
@@ -99,7 +102,21 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
         }
       }
     } catch {
-      // Fall through to file handling
+      // Fall through to webkitGetAsEntry / file handling
+    }
+  }
+
+  // Fallback: directory drop via webkitGetAsEntry (works in all browsers)
+  const entry = firstItem.webkitGetAsEntry?.()
+  if (entry?.isDirectory) {
+    const files = await readDirectoryEntryRecursive(entry as FileSystemDirectoryEntry)
+    if (files.length > 0) {
+      const name = entry.name
+      const fs = createMemoryFS()
+      for (const { path, file } of files) {
+        await fs.writeFile(path, file)
+      }
+      return createMemoryHandle(fs, name)
     }
   }
 
@@ -319,5 +336,62 @@ function pickFile(accept: string): Promise<File | null> {
     })
     input.addEventListener('cancel', () => resolve(null))
     input.click()
+  })
+}
+
+function pickDirectoryFiles(): Promise<File[] | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    ;(input as any).webkitdirectory = true
+    input.addEventListener('change', () => {
+      resolve(input.files ? Array.from(input.files) : null)
+    })
+    input.addEventListener('cancel', () => resolve(null))
+    input.click()
+  })
+}
+
+/** Recursively read all files from a dropped directory entry. */
+async function readDirectoryEntryRecursive(
+  dir: FileSystemDirectoryEntry,
+  basePath = ''
+): Promise<{ path: string; file: File }[]> {
+  const results: { path: string; file: File }[] = []
+  const entries = await readEntries(dir)
+
+  for (const entry of entries) {
+    const entryPath = basePath ? `${basePath}/${entry.name}` : entry.name
+    if (entry.isFile) {
+      const file = await new Promise<File>((resolve, reject) => {
+        ;(entry as FileSystemFileEntry).file(resolve, reject)
+      })
+      results.push({ path: entryPath, file })
+    } else if (entry.isDirectory) {
+      const nested = await readDirectoryEntryRecursive(entry as FileSystemDirectoryEntry, entryPath)
+      results.push(...nested)
+    }
+  }
+
+  return results
+}
+
+/** Read all entries from a directory (handles batched readEntries). */
+function readEntries(dir: FileSystemDirectoryEntry): Promise<FileSystemEntry[]> {
+  return new Promise((resolve, reject) => {
+    const reader = dir.createReader()
+    const all: FileSystemEntry[] = []
+
+    function readBatch() {
+      reader.readEntries((entries) => {
+        if (entries.length === 0) {
+          resolve(all)
+        } else {
+          all.push(...entries)
+          readBatch() // readEntries may return results in batches
+        }
+      }, reject)
+    }
+    readBatch()
   })
 }

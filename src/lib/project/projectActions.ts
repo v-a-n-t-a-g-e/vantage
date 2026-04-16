@@ -121,16 +121,9 @@ export async function openProject() {
     if (!confirm('You have unsaved changes. Discard them?')) return
   }
 
-  if (supportsNativeFS()) {
-    const handle = await pickDirectory()
-    if (!handle) return
-    await loadFromHandle(handle)
-  } else {
-    // Fallback: import from file (ZIP)
-    const handle = await pickImportFile()
-    if (!handle) return
-    await loadFromHandle(handle)
-  }
+  const handle = await pickDirectory()
+  if (!handle) return
+  await loadFromHandle(handle)
 }
 
 export async function importProject() {
