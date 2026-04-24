@@ -44,6 +44,7 @@ export async function openProject(): Promise<ProjectHandle | null> {
       throw err
     }
     const fs = createProjectFS(handle)
+    await assertHasSceneJson(fs)
     return createNativeHandle(fs, handle.name, handle)
   }
 
@@ -52,6 +53,7 @@ export async function openProject(): Promise<ProjectHandle | null> {
   if (!files || files.length === 0) return null
   const name = files[0].webkitRelativePath.split('/')[0] || 'project'
   const fs = createMemoryFS(files)
+  await assertHasSceneJson(fs)
   return createMemoryHandle(fs, name)
 }
 
@@ -102,6 +104,7 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
         const perm = await (dirHandle as any).requestPermission({ mode: 'readwrite' })
         if (perm === 'granted') {
           const fs = createProjectFS(dirHandle)
+          await assertHasSceneJson(fs)
           return createNativeHandle(fs, dirHandle.name, dirHandle)
         }
       }
@@ -120,6 +123,7 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
       for (const { path, file } of files) {
         await fs.writeFile(path, file)
       }
+      await assertHasSceneJson(fs)
       return createMemoryHandle(fs, name)
     }
   }
@@ -199,6 +203,14 @@ export function createHandleFromFetch(basePath: string): ProjectHandle {
 
 // ── Internal helpers ──
 
+async function assertHasSceneJson(fs: ProjectFS): Promise<void> {
+  try {
+    await fs.readFile('scene.json')
+  } catch {
+    throw new Error('Not a valid Vantage project (scene.json not found).')
+  }
+}
+
 function createNativeHandle(
   fs: ProjectFS,
   name: string,
@@ -245,6 +257,7 @@ async function importProjectFile(file: File): Promise<ProjectHandle> {
   if (file.name.endsWith('.zip')) {
     const buffer = await file.arrayBuffer()
     const fs = loadZip(buffer)
+    await assertHasSceneJson(fs)
     return createMemoryHandle(fs, name)
   }
 
