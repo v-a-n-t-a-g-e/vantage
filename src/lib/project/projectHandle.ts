@@ -87,6 +87,10 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
 
   const firstItem = items[0]
 
+  // Extract file synchronously before any async work — Chrome clears the DataTransferItem
+  // after getAsFileSystemHandle() resolves, making a subsequent getAsFile() return null.
+  const file = firstItem.getAsFile()
+
   // Check for directory drop (File System Access API — Chromium)
   if ('getAsFileSystemHandle' in firstItem) {
     try {
@@ -121,7 +125,6 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
   }
 
   // Handle as file (zip or model)
-  const file = firstItem.getAsFile()
   if (!file) return null
   return importProjectFile(file)
 }
