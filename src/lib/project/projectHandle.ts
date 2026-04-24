@@ -95,21 +95,22 @@ export async function onProjectDrop(event: DragEvent): Promise<ProjectHandle | n
 
   // Check for directory drop (File System Access API — Chromium)
   if ('getAsFileSystemHandle' in firstItem) {
+    let fsHandle: FileSystemHandle | null = null
     try {
-      const handle = await (
+      fsHandle = await (
         firstItem as DataTransferItem & { getAsFileSystemHandle(): Promise<FileSystemHandle> }
       ).getAsFileSystemHandle()
-      if (handle && handle.kind === 'directory') {
-        const dirHandle = handle as FileSystemDirectoryHandle
-        const perm = await (dirHandle as any).requestPermission({ mode: 'readwrite' })
-        if (perm === 'granted') {
-          const fs = createProjectFS(dirHandle)
-          await assertHasSceneJson(fs)
-          return createNativeHandle(fs, dirHandle.name, dirHandle)
-        }
-      }
     } catch {
-      // Fall through to webkitGetAsEntry / file handling
+      // getAsFileSystemHandle not supported or failed — fall through
+    }
+    if (fsHandle && fsHandle.kind === 'directory') {
+      const dirHandle = fsHandle as FileSystemDirectoryHandle
+      const perm = await (dirHandle as any).requestPermission({ mode: 'readwrite' })
+      if (perm === 'granted') {
+        const fs = createProjectFS(dirHandle)
+        await assertHasSceneJson(fs)
+        return createNativeHandle(fs, dirHandle.name, dirHandle)
+      }
     }
   }
 
