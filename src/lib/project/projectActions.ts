@@ -168,15 +168,11 @@ async function loadFromFS(readFile: (path: string) => Promise<File>) {
   if (manifest.projections?.length) {
     const projections = await deserializeProjections(manifest.projections, readFile)
     for (const p of projections) {
+      p.projection.visible = p.visible
       const item = sceneActions.value?.addProjectionSilent(p.name, p.projection, p.imagePath)
       if (item) {
         item.id = p.id
         item.visible = p.visible
-        if (!p.visible) {
-          for (const obj of sceneState.objects) {
-            p.projection.unproject(obj.object)
-          }
-        }
       }
     }
   }

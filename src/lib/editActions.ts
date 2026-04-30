@@ -4,17 +4,9 @@ import { pushCommand } from './history.svelte.ts'
 import { undoableToggle } from './undoable.ts'
 
 function applyVisibility(item: SceneObject | ProjectionItem, visible: boolean) {
-  if (item.kind === 'object') {
-    item.object.visible = visible
-    item.visible = visible
-  } else {
-    item.visible = visible
-    item.projection.visible = visible
-    for (const obj of sceneState.objects) {
-      if (visible) item.projection.project(obj.object)
-      else item.projection.unproject(obj.object)
-    }
-  }
+  item.visible = visible
+  if (item.kind === 'object') item.object.visible = visible
+  else item.projection.visible = visible
 }
 
 export function toggleVisibility(item: SceneObject | ProjectionItem) {

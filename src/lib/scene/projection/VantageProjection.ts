@@ -29,6 +29,7 @@ export class VantageProjection extends PerspectiveCamera {
   texture: Texture | null = null
   projectionPlane: Mesh | null = null
 
+  private _targets = new Set<Object3D>()
   private _materials = new Map<Mesh, { mat: ProjectionMaterial; hadGroups: boolean }>()
   private _depthMaterial = new MeshDepthMaterial({
     polygonOffset: true,
@@ -49,6 +50,22 @@ export class VantageProjection extends PerspectiveCamera {
     this.renderTarget.depthTexture = new DepthTexture(renderTargetSize, renderTargetSize)
 
     this._initProjectionPlane()
+
+    let _visible = true
+    Object.defineProperty(this, 'visible', {
+      get: () => _visible,
+      set: (v: boolean) => {
+        if (v === _visible) return
+        _visible = v
+        if (v) {
+          for (const target of this._targets) this._applyToTarget(target)
+        } else {
+          for (const target of this._targets) this._removeFromTarget(target)
+        }
+      },
+      enumerable: true,
+      configurable: true,
+    })
 
     if (texture) this.setTexture(texture)
   }
@@ -72,13 +89,29 @@ export class VantageProjection extends PerspectiveCamera {
   }
 
   project(object: Object3D) {
+    this._targets.add(object)
+    if (this.visible) this._applyToTarget(object)
+  }
+
+  unproject(object: Object3D) {
+    this._targets.delete(object)
+    this._removeFromTarget(object)
+  }
+
+  reapply() {
+    for (const target of this._targets) this._removeFromTarget(target)
+    if (!this.visible) return
+    for (const target of this._targets) this._applyToTarget(target)
+  }
+
+  private _applyToTarget(object: Object3D) {
     object.traverse((child) => {
       if (!(child as Mesh).isMesh) return
       this._applyMaterial(child as Mesh)
     })
   }
 
-  unproject(object: Object3D) {
+  private _removeFromTarget(object: Object3D) {
     object.traverse((child) => {
       if (!(child as Mesh).isMesh) return
       const mesh = child as Mesh

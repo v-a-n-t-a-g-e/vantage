@@ -238,9 +238,8 @@ export class SceneEditor extends SceneViewer {
     }
     sceneState.objects = [...sceneState.objects, item]
 
-    // Apply all visible projections to the new object
     for (const p of sceneState.projections) {
-      if (p.visible) p.projection.project(obj)
+      p.projection.project(obj)
     }
 
     return item
@@ -283,11 +282,8 @@ export class SceneEditor extends SceneViewer {
 
     this.scene.add(projection)
 
-    // Project onto all visible scene objects
     for (const obj of sceneState.objects) {
-      if (obj.visible) {
-        projection.project(obj.object)
-      }
+      projection.project(obj.object)
     }
 
     const item: ProjectionItem = {

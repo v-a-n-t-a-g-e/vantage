@@ -20,20 +20,7 @@ function reset() {
 }
 
 function reprojectAll() {
-  for (const p of sceneState.projections) {
-    if (p.visible) {
-      for (const obj of sceneState.objects) {
-        p.projection.unproject(obj.object)
-      }
-    }
-  }
-  for (const p of sceneState.projections) {
-    if (p.visible) {
-      for (const obj of sceneState.objects) {
-        p.projection.project(obj.object)
-      }
-    }
-  }
+  for (const p of sceneState.projections) p.projection.reapply()
 }
 
 function moveItem(list: ListKind, item: SceneObject | ProjectionItem, toIndex: number) {

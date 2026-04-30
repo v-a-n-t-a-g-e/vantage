@@ -95,11 +95,7 @@ export class SceneViewer {
     for (const { projection, visible } of projections) {
       projection.visible = visible
       this.scene.add(projection)
-      if (visible) {
-        for (const { object, visible: objVisible } of objects) {
-          if (objVisible) projection.project(object)
-        }
-      }
+      for (const { object } of objects) projection.project(object)
     }
 
     this.env.grid.visible = options.showGrid ?? true

@@ -87,14 +87,8 @@ describe('editActions', () => {
       expect(item.visible).toBe(false)
     })
 
-    it('toggles projection visibility and calls project/unproject', () => {
-      const mockObj = { object: {} }
-      sceneState.objects = [mockObj] as any
-
-      const projection = {
-        project: vi.fn(),
-        unproject: vi.fn(),
-      }
+    it('toggles projection visibility', () => {
+      const projection = { visible: true }
       const item = {
         kind: 'projection' as const,
         visible: true,
@@ -103,7 +97,7 @@ describe('editActions', () => {
 
       toggleVisibility(item)
       expect(item.visible).toBe(false)
-      expect(projection.unproject).toHaveBeenCalledWith(mockObj.object)
+      expect(projection.visible).toBe(false)
     })
   })
 
