@@ -1,6 +1,10 @@
 import { sceneState, sceneActions, SCENE_DEFAULTS } from '@/lib/sceneState.svelte.ts'
 import { projectState } from '@/lib/project/projectState.svelte.ts'
-import { serializeScene, deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
+import {
+  serializeScene,
+  deserializeScene,
+  deserializeProjections,
+} from '@/lib/project/serializer.ts'
 import { validateManifest } from '@/lib/project/validateManifest.ts'
 import { addRecentHandle, getRecentHandles } from '@/lib/project/handleStore.ts'
 import { supportsNativeFS } from '@/lib/project/fileSystem.ts'
@@ -79,7 +83,7 @@ export async function saveProject() {
 
 export async function saveProjectAs() {
   if (supportsNativeFS()) {
-    const handle = await pickDirectory()
+    const handle = await pickDirectory(true)
     if (!handle) return
     projectState.handle = handle
     projectState.projectName = handle.name
