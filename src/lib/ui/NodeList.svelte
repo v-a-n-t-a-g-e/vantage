@@ -2,7 +2,7 @@
   import NodeListItem from '@/lib/ui/NodeListItem.svelte'
   import { sceneState } from '@/lib/sceneState.svelte.ts'
   import { toggleVisibility, toggleLock } from '@/lib/editActions.ts'
-  import { importModelFiles, importImageFiles } from '@/lib/fileImport.ts'
+  import { importModelFiles, importSplatFiles, importImageFiles } from '@/lib/fileImport.ts'
   import { useModifierKeys } from '@/lib/useModifierKeys.svelte.ts'
   import { useDragReorder } from '@/lib/ui/useDragReorder.svelte.ts'
   import Add from '@/assets/icons/Add.svg'
@@ -19,6 +19,7 @@
   async function handleFiles(files: FileList | null | undefined) {
     if (!files) return
     await importModelFiles(files)
+    await importSplatFiles(files)
     if (modelInput) modelInput.value = ''
   }
 
@@ -92,7 +93,7 @@
       <button
         class="-mr-3 ui-button h-full px-3"
         onclick={() => modelInput.click()}
-        title="Import GLTF/GLB"
+        title="Import model or splat (GLTF/GLB, PLY/SPZ/SPLAT/KSPLAT)"
       >
         <Add />
       </button>
@@ -101,7 +102,7 @@
     <input
       bind:this={modelInput}
       class="hidden"
-      accept=".gltf,.glb"
+      accept=".gltf,.glb,.ply,.spz,.splat,.ksplat"
       multiple
       onchange={(e) => handleFiles((e.target as HTMLInputElement).files)}
       type="file"

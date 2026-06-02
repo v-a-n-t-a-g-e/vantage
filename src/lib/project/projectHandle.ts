@@ -6,9 +6,11 @@ import {
   downloadBlob,
   type MemoryFS,
 } from '@/lib/project/memoryFS.ts'
-import { loadGLTF } from '@/lib/gltfLoader.ts'
+import { Object3D } from 'three'
+import { detectPlyKind } from '@/lib/plyFormat.ts'
 import { serializeScene } from '@/lib/project/serializer.ts'
 import { FILE_PATTERNS, PROJECT_DIRS } from '@/lib/constants.ts'
+import type { SceneObject } from '@/lib/types.ts'
 
 export interface ProjectHandle {
   /** Filesystem for reading and writing project files. */
@@ -58,19 +60,21 @@ export async function openProject(create?: Boolean): Promise<ProjectHandle | nul
 }
 
 /**
- * Import a vantage project from a file — either a `.zip` containing a project
- * or a `.glb`/`.gltf` model file (which scaffolds a minimal project around it).
- * Returns `null` if the user cancels the picker.
+ * Import a vantage project from a file — either a `.zip` containing a project,
+ * a `.glb`/`.gltf` model, or a splat/point-cloud file (`.ply`/`.spz`/`.splat`/
+ * `.ksplat`). A bare asset scaffolds a minimal project around it. Returns `null`
+ * if the user cancels the picker.
  */
 export async function importProject(): Promise<ProjectHandle | null> {
-  const file = await pickFile('.zip,.glb,.gltf')
+  const file = await pickFile('.zip,.glb,.gltf,.ply,.spz,.splat,.ksplat')
   if (!file) return null
   return importProjectFile(file)
 }
 
 /**
  * Process a dropped file or directory into a ProjectHandle.
- * Handles directories (native FS), `.zip` files, and `.glb`/`.gltf` model files.
+ * Handles directories (native FS), `.zip` files, `.glb`/`.gltf` models, and
+ * splat/point-cloud files (`.ply`/`.spz`/`.splat`/`.ksplat`).
  *
  * Usage:
  * ```ts
@@ -262,28 +266,45 @@ async function importProjectFile(file: File): Promise<ProjectHandle> {
     return createMemoryHandle(fs, name)
   }
 
-  if (FILE_PATTERNS.MODEL.test(file.name)) {
-    const fs = await scaffoldFromModel(file)
+  if (FILE_PATTERNS.MODEL.test(file.name) || FILE_PATTERNS.SPLAT.test(file.name)) {
+    const fs = await scaffoldFromAsset(file)
     return createMemoryHandle(fs, name)
   }
 
-  throw new Error(`Unsupported file type: ${file.name}. Expected .zip, .glb, or .gltf`)
+  throw new Error(
+    `Unsupported file type: ${file.name}. ` +
+      `Expected .zip, .glb, .gltf, .ply, .spz, .splat, or .ksplat`
+  )
 }
 
-async function scaffoldFromModel(file: File): Promise<MemoryFS> {
-  const { group, blob } = await loadGLTF(file)
+/**
+ * Scaffold a minimal project around a single asset file (model, splat, or point
+ * cloud). The file is copied into `models/` and a one-object `scene.json` is
+ * written. Splat/point-cloud assets are not parsed here (which would force the
+ * optional Spark dependency); the file's kind is recorded so it loads correctly
+ * when the project is opened.
+ */
+async function scaffoldFromAsset(file: File): Promise<MemoryFS> {
   const modelPath = `models/${file.name}`
   const name = file.name.replace(/\.\w+$/, '')
 
-  const objects = [
+  let source: SceneObject['source']
+  if (FILE_PATTERNS.SPLAT.test(file.name)) {
+    const format = /\.ply$/i.test(file.name) ? await detectPlyKind(file) : 'splat'
+    source = { kind: 'imported', relativePath: modelPath, format }
+  } else {
+    source = { kind: 'imported', relativePath: modelPath }
+  }
+
+  const objects: SceneObject[] = [
     {
-      kind: 'object' as const,
+      kind: 'object',
       id: crypto.randomUUID(),
       name,
-      object: group,
+      object: new Object3D(),
       visible: true,
       locked: false,
-      source: { kind: 'imported' as const, relativePath: modelPath },
+      source,
     },
   ]
 
@@ -294,7 +315,7 @@ async function scaffoldFromModel(file: File): Promise<MemoryFS> {
     await fs.mkdir(dir)
   }
 
-  await fs.writeFile(modelPath, blob)
+  await fs.writeFile(modelPath, file)
   await fs.writeFile('scene.json', JSON.stringify(manifest, null, 2))
 
   return fs

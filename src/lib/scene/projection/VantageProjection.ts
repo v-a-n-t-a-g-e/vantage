@@ -213,10 +213,27 @@ export class VantageProjection extends PerspectiveCamera {
   }
 
   private _createDepthMap(renderer: WebGLRenderer, scene: Scene) {
+    // Splats and point clouds are not depth occluders, and the splat renderer
+    // (Spark) hooks onBeforeRender to composite for the active camera; rendering
+    // them here (with another camera and an override material) corrupts that
+    // pipeline, so hide them for the depth pass and restore afterwards.
+    const hidden: Object3D[] = []
+    scene.traverse((o) => {
+      if (
+        o.visible &&
+        (o.userData.isSplat || o.userData.isSparkRenderer || o.userData.isPointCloud)
+      ) {
+        o.visible = false
+        hidden.push(o)
+      }
+    })
+
     scene.overrideMaterial = this._depthMaterial
     renderer.setRenderTarget(this.renderTarget)
     renderer.render(scene, this)
     renderer.setRenderTarget(null)
     scene.overrideMaterial = null
+
+    for (const o of hidden) o.visible = true
   }
 }

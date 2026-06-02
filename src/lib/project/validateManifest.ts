@@ -47,6 +47,15 @@ function validateObjectEntry(entry: unknown, index: number): asserts entry is Sc
   assertType(e.name, 'string', `${path}.name`)
   assertType(e.visible, 'boolean', `${path}.visible`)
 
+  if (
+    e.type !== undefined &&
+    !['mesh', 'pointcloud', 'splat', 'group'].includes(e.type as string)
+  ) {
+    throw new ManifestValidationError(
+      `Expected ${path}.type to be 'mesh', 'pointcloud', 'splat', or 'group', got '${e.type}'`
+    )
+  }
+
   if (!e.source || typeof e.source !== 'object') {
     throw new ManifestValidationError(`Expected ${path}.source to be an object`)
   }

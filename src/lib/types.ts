@@ -7,7 +7,12 @@ export const TRANSFORM_TOOLS: TransformTool[] = ['translate', 'rotate', 'scale']
 
 export type SceneObjectSource =
   | { kind: 'primitive'; geometryType: string }
-  | { kind: 'imported'; relativePath: string; originalBlob?: Blob }
+  | {
+      kind: 'imported'
+      relativePath: string
+      originalBlob?: Blob
+      format?: 'gltf' | 'splat' | 'pointcloud'
+    }
 
 export type SceneObject = {
   kind: 'object'

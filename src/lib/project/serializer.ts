@@ -1,6 +1,8 @@
 import type { SceneObject, SceneObjectSource, ProjectionItem } from '../types.ts'
 import type { SceneManifest, SceneObjectEntry, ProjectionEntry } from './types.ts'
 import { loadGLTF } from '../gltfLoader.ts'
+import { loadSplat } from '../splatLoader.ts'
+import { loadPointCloud } from '../pointCloudLoader.ts'
 import { VantageProjection, loadTexture } from '../scene/projection'
 import * as THREE from 'three'
 
@@ -17,16 +19,19 @@ export function serializeScene(
   const entries: SceneObjectEntry[] = objects.map((item) => {
     const obj = item.object
     let source: SceneObjectEntry['source']
+    let type: SceneObjectEntry['type'] = 'mesh'
     if (item.source.kind === 'primitive') {
       source = { kind: 'primitive', geometryType: item.source.geometryType }
     } else {
       source = { kind: 'imported', path: item.source.relativePath }
+      if (item.source.format === 'splat') type = 'splat'
+      else if (item.source.format === 'pointcloud') type = 'pointcloud'
     }
 
     return {
       id: item.id,
       name: item.name,
-      type: 'mesh' as const,
+      type,
       source,
       transform: {
         position: [obj.position.x, obj.position.y, obj.position.z],
@@ -104,6 +109,16 @@ export async function deserializeScene(
         new THREE.MeshStandardMaterial({ color: 0x888888 })
       )
       source = { kind: 'primitive', geometryType: entry.source.geometryType }
+    } else if (entry.type === 'splat') {
+      const file = await readFile(entry.source.path)
+      const { object: splat } = await loadSplat(file)
+      object = splat
+      source = { kind: 'imported', relativePath: entry.source.path, format: 'splat' }
+    } else if (entry.type === 'pointcloud') {
+      const file = await readFile(entry.source.path)
+      const { object: cloud } = await loadPointCloud(file)
+      object = cloud
+      source = { kind: 'imported', relativePath: entry.source.path, format: 'pointcloud' }
     } else {
       const file = await readFile(entry.source.path)
       const { group } = await loadGLTF(file)

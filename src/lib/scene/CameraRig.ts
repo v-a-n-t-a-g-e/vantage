@@ -5,6 +5,22 @@ type FlyTarget = { position: THREE.Vector3; target: THREE.Vector3 }
 
 const _dir = new THREE.Vector3()
 
+/**
+ * World-space bounds of an object. Splat meshes (e.g. Spark's SplatMesh) have no
+ * standard geometry, so `setFromObject` yields an empty box; they instead expose
+ * a `getBoundingBox()` returning local-space bounds, which we transform to world.
+ */
+function worldBounds(object: THREE.Object3D): THREE.Box3 {
+  const box = new THREE.Box3().setFromObject(object)
+  if (!box.isEmpty()) return box
+  const getBoundingBox = (object as { getBoundingBox?: () => THREE.Box3 }).getBoundingBox
+  if (typeof getBoundingBox === 'function') {
+    object.updateWorldMatrix(true, false)
+    return getBoundingBox.call(object).clone().applyMatrix4(object.matrixWorld)
+  }
+  return box
+}
+
 export class CameraRig extends OrbitControls {
   private flyTarget: FlyTarget | null = null
 
@@ -16,7 +32,7 @@ export class CameraRig extends OrbitControls {
   }
 
   focusObject(object: THREE.Object3D) {
-    const box = new THREE.Box3().setFromObject(object)
+    const box = worldBounds(object)
     if (box.isEmpty()) return
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3()).length()

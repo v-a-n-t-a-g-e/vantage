@@ -3,10 +3,16 @@
   import type { ProjectionItem } from '@/lib/types.ts'
   import { pushCommand } from '@/lib/history.svelte.ts'
   import Vec3Controls from '@/lib/ui/Vec3Controls.svelte'
+  import UniformScaleControl from '@/lib/ui/UniformScaleControl.svelte'
   import DragInput from '@/lib/ui/DragInput.svelte'
   import DeleteIcon from '@/assets/icons/Delete.svg'
 
   const sel = $derived(sceneState.selected)
+
+  // Splats (SplatMesh) only honor uniform scale
+  const isSplat = $derived(
+    sel?.kind === 'object' && sel.source.kind === 'imported' && sel.source.format === 'splat'
+  )
 
   // Both Object3D and VantageProjection share position/rotation
   const transformTarget = $derived(
@@ -88,13 +94,17 @@
     />
 
     {#if sel.kind === 'object'}
-      <Vec3Controls
-        labels={['x', 'y', 'z']}
-        object={sel.object}
-        prop="scale"
-        step={0.01}
-        title="Scale"
-      />
+      {#if isSplat}
+        <UniformScaleControl object={sel.object} step={0.01} />
+      {:else}
+        <Vec3Controls
+          labels={['x', 'y', 'z']}
+          object={sel.object}
+          prop="scale"
+          step={0.01}
+          title="Scale"
+        />
+      {/if}
     {/if}
 
     {#if sel.kind === 'projection'}

@@ -227,6 +227,9 @@ export class SceneEditor extends SceneViewer {
     }
     obj.name = uniqueName
     this.scene.add(obj)
+    if (source.kind === 'imported' && source.format === 'splat') {
+      void this.ensureSparkRenderer()
+    }
     const item: SceneObject = {
       kind: 'object',
       id: crypto.randomUUID(),

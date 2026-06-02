@@ -19,6 +19,9 @@ export class PickingController {
     this.camera = camera
     this.gizmo = gizmo
     this.raycaster.layers.enable(UI_LAYER)
+    // Points have zero area; give the raycaster a small radius so point clouds
+    // can be picked in the viewport.
+    this.raycaster.params.Points.threshold = 0.5
 
     const opts = { signal: this.ac.signal }
     canvas.addEventListener('pointerdown', this.onPointerDown, opts)

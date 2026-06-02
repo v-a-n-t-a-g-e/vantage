@@ -17,7 +17,7 @@ export default defineConfig({
     },
     outDir: 'dist/lib',
     rolldownOptions: {
-      external: ['three', /^three\//],
+      external: ['three', /^three\//, '@sparkjsdev/spark', /^@sparkjsdev\/spark\//],
     },
   },
 })

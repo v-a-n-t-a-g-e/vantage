@@ -16,6 +16,7 @@ export const CLICK_PIXEL_THRESHOLD = 3
 // ── File patterns ──
 export const FILE_PATTERNS = {
   MODEL: /\.(gltf|glb)$/i,
+  SPLAT: /\.(ply|spz|splat|ksplat)$/i,
   IMAGE: /\.(jpe?g|png|webp)$/i,
 } as const
 

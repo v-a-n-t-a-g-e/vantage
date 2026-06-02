@@ -1,12 +1,17 @@
 import { sceneActions } from '@/lib/sceneState.svelte.ts'
 import { loadGLTF } from '@/lib/gltfLoader.ts'
+import { loadSplat } from '@/lib/splatLoader.ts'
+import { loadPointCloud } from '@/lib/pointCloudLoader.ts'
+import { detectPlyKind } from '@/lib/plyFormat.ts'
 import { VantageProjection, loadTexture } from '@/lib/scene/projection'
 import { FILE_PATTERNS } from '@/lib/constants.ts'
+import { notify } from '@/lib/notifications.svelte.ts'
 
 export type ImportErrorHandler = (file: File, error: Error) => void
 
 const defaultOnError: ImportErrorHandler = (file, error) => {
   console.error(`Failed to import ${file.name}:`, error)
+  notify(error.message || `Failed to import ${file.name}`, 'error')
 }
 
 export async function importModelFiles(
@@ -22,6 +27,33 @@ export async function importModelFiles(
         kind: 'imported',
         relativePath: `models/${file.name}`,
         originalBlob: blob,
+      })
+    } catch (err) {
+      onError(file, err instanceof Error ? err : new Error(String(err)))
+    }
+  }
+}
+
+export async function importSplatFiles(
+  files: FileList | File[],
+  onError: ImportErrorHandler = defaultOnError
+) {
+  for (const file of files) {
+    if (!FILE_PATTERNS.SPLAT.test(file.name)) continue
+    try {
+      // `.ply` may be a Gaussian splat or a plain point cloud; detect from the
+      // header. Other extensions (.spz/.splat/.ksplat) are always splats. Point
+      // clouds render natively and need no optional dependency.
+      const isPly = /\.ply$/i.test(file.name)
+      const format = isPly ? await detectPlyKind(file) : 'splat'
+      const { object, blob } =
+        format === 'pointcloud' ? await loadPointCloud(file) : await loadSplat(file)
+      const name = file.name.replace(FILE_PATTERNS.SPLAT, '')
+      sceneActions.value?.addObject(name, object, {
+        kind: 'imported',
+        relativePath: `models/${file.name}`,
+        originalBlob: blob,
+        format,
       })
     } catch (err) {
       onError(file, err instanceof Error ? err : new Error(String(err)))
@@ -57,5 +89,6 @@ export async function importFiles(
 ) {
   if (!files) return
   await importModelFiles(files, onError)
+  await importSplatFiles(files, onError)
   await importImageFiles(files, onError)
 }

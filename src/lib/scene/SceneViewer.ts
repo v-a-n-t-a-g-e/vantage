@@ -6,6 +6,7 @@ import { VantageProjection } from '@/lib/scene/projection/index.ts'
 import { CAMERA_DEFAULTS } from '@/lib/constants.ts'
 import { deserializeScene, deserializeProjections } from '@/lib/project/serializer.ts'
 import { validateManifest } from '@/lib/project/validateManifest.ts'
+import { loadSparkModule } from '@/lib/splatLoader.ts'
 import type { CameraState, SceneManifest } from '@/lib/project/types.ts'
 
 export interface SceneViewOptions {
@@ -34,6 +35,7 @@ export class SceneViewer {
 
   private ro: ResizeObserver
   private animId = 0
+  private sparkRenderer: THREE.Object3D | null = null
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
@@ -148,6 +150,11 @@ export class SceneViewer {
     const raw = JSON.parse(await file.text())
     const manifest = validateManifest(raw)
 
+    // Only Gaussian splats need Spark; point clouds render natively.
+    if (manifest.objects.some((o) => o.type === 'splat')) {
+      await this.ensureSparkRenderer()
+    }
+
     const objects = await deserializeScene(manifest, readFile)
     const projections = manifest.projections
       ? await deserializeProjections(manifest.projections, readFile)
@@ -164,12 +171,32 @@ export class SceneViewer {
     return manifest
   }
 
+  /**
+   * Ensure a single `SparkRenderer` is present in the scene so Gaussian splats
+   * render. Lazily loads the optional `@sparkjsdev/spark` package — only called
+   * when a splat object is actually added. Rejects with a clear error if the
+   * package is not installed.
+   */
+  protected async ensureSparkRenderer(): Promise<void> {
+    if (this.sparkRenderer) return
+    const { SparkRenderer } = await loadSparkModule()
+    this.sparkRenderer = new SparkRenderer({ renderer: this.renderer })
+    // Tag so the projection depth pass can exclude it (see VantageProjection).
+    this.sparkRenderer.userData.isSparkRenderer = true
+    this.scene.add(this.sparkRenderer)
+  }
+
   dispose() {
     this.onDispose()
     cancelAnimationFrame(this.animId)
     this.ro.disconnect()
     for (const { projection } of this.projections) {
       projection.dispose()
+    }
+    if (this.sparkRenderer) {
+      this.scene.remove(this.sparkRenderer)
+      ;(this.sparkRenderer as { dispose?: () => void }).dispose?.()
+      this.sparkRenderer = null
     }
     this.renderer.dispose()
   }

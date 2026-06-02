@@ -46,6 +46,9 @@ export {
 
 // Loaders
 export { loadGLTF } from './gltfLoader'
+export { loadSplat, loadSparkModule } from './splatLoader'
+export { loadPointCloud } from './pointCloudLoader'
+export { detectPlyKind, type PlyKind } from './plyFormat'
 
 // Types
 export * from './types'
