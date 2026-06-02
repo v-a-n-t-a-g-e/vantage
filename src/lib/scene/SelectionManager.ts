@@ -19,6 +19,7 @@ export class SelectionManager {
   private selectionHelper: THREE.BoxHelper | null = null
   private projectionHelper: ProjectionHelper | null = null
   private lastSelected: SceneObject | ProjectionItem | null = null
+  private lastSelectedObject3D: THREE.Object3D | null = null
   private lastHovered: SceneObject | null = null
   private lastTool: Tool = 'cursor'
 
@@ -28,8 +29,14 @@ export class SelectionManager {
   }
 
   update() {
-    // Selection changes
-    if (sceneState.selected !== this.lastSelected) {
+    // Selection changes — also re-run when the selected item's underlying
+    // Object3D was swapped (e.g. toggling a splat to point-cloud rendering).
+    const selectedObject3D =
+      sceneState.selected?.kind === 'object' ? sceneState.selected.object : null
+    if (
+      sceneState.selected !== this.lastSelected ||
+      selectedObject3D !== this.lastSelectedObject3D
+    ) {
       // Clean up old projection helper if previous selection was a projection
       if (this.lastSelected?.kind === 'projection') {
         if (this.projectionHelper) {
@@ -44,6 +51,7 @@ export class SelectionManager {
       }
 
       this.lastSelected = sceneState.selected
+      this.lastSelectedObject3D = selectedObject3D
       if (this.lastSelected?.kind === 'object') {
         if (sceneState.tool === 'cursor') {
           this.gizmo.detach()

@@ -10,6 +10,7 @@ import { SelectionManager } from '@/lib/scene/SelectionManager.ts'
 import { UI_LAYER } from '@/lib/scene/layers.ts'
 import { VantageProjection } from '@/lib/scene/projection'
 import { importFiles } from '@/lib/fileImport.ts'
+import { splatToPoints } from '@/lib/pointCloudLoader.ts'
 
 export class SceneEditor extends SceneViewer {
   private gizmo: TransformGizmo
@@ -87,6 +88,14 @@ export class SceneEditor extends SceneViewer {
       },
       addObjectSilent: (name, obj, source) => {
         return this.doAdd(name, obj, source)
+      },
+      setObjectRenderMode: (item, mode) => {
+        const prevMode = this.doSetRenderMode(item, mode)
+        if (!prevMode) return
+        pushCommand({
+          undo: () => this.doSetRenderMode(item, prevMode),
+          redo: () => this.doSetRenderMode(item, mode),
+        })
       },
       addProjection: (name, projection, imageBlob, imagePath) => {
         const item = this.doAddProjection(name, projection, imagePath, imageBlob)
@@ -238,6 +247,7 @@ export class SceneEditor extends SceneViewer {
       visible: true,
       locked: false,
       source,
+      display: obj.userData.display as SceneObject['display'],
     }
     sceneState.objects = [...sceneState.objects, item]
 
@@ -265,6 +275,56 @@ export class SceneEditor extends SceneViewer {
       sceneState.hovered = null
     }
     sceneState.objects = sceneState.objects.filter((o) => o.object !== obj)
+  }
+
+  /**
+   * Toggle a splat/point-cloud object between Gaussian-splat and point-cloud
+   * rendering by swapping the scene object. Returns the previous mode (for
+   * undo), or null if it was a no-op. The two representations are cached and
+   * linked via `userData`, so toggling back needs no reload.
+   */
+  private doSetRenderMode(
+    item: SceneObject,
+    mode: 'splat' | 'pointcloud'
+  ): 'splat' | 'pointcloud' | null {
+    const display = item.display
+    if (!display || display.renderAs === mode) return null
+
+    const current = item.object
+    let next: THREE.Object3D | undefined
+    if (mode === 'pointcloud') {
+      next =
+        (current.userData.pointsVariant as THREE.Object3D | undefined) ??
+        splatToPoints(current as Parameters<typeof splatToPoints>[0], display)
+    } else {
+      next = current.userData.sourceSplat as THREE.Object3D | undefined
+    }
+    if (!next) return null
+
+    const prevMode = display.renderAs
+    this.swapObject(item, next)
+    display.renderAs = mode
+    next.userData.display = display
+    return prevMode
+  }
+
+  /** Replace `item.object` in the scene with `next`, preserving transform and selection. */
+  private swapObject(item: SceneObject, next: THREE.Object3D) {
+    const prev = item.object
+    next.position.copy(prev.position)
+    next.quaternion.copy(prev.quaternion)
+    next.scale.copy(prev.scale)
+    next.visible = prev.visible
+    next.name = prev.name
+
+    for (const p of sceneState.projections) p.projection.unproject(prev)
+    this.scene.remove(prev)
+    this.scene.add(next)
+    if (next.userData.isSplat) void this.ensureSparkRenderer()
+    for (const p of sceneState.projections) p.projection.project(next)
+
+    item.object = next
+    if (sceneState.hovered?.object === prev) sceneState.hovered = null
   }
 
   private doAddProjection(

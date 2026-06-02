@@ -14,6 +14,15 @@ export type SceneObjectSource =
       format?: 'gltf' | 'splat' | 'pointcloud'
     }
 
+/** Display settings for point-cloud / splat objects (persisted in scene.json metadata). */
+export type PointCloudDisplay = {
+  /** For splats: whether to render as a Gaussian splat or as a plain point cloud.
+   *  Native point clouds are always 'pointcloud'. */
+  renderAs: 'splat' | 'pointcloud'
+  pointSize: number
+  sizeAttenuation: boolean
+}
+
 export type SceneObject = {
   kind: 'object'
   id: string
@@ -22,6 +31,7 @@ export type SceneObject = {
   visible: boolean
   locked: boolean
   source: SceneObjectSource
+  display?: PointCloudDisplay
 }
 
 export type ProjectionItem = {
@@ -41,6 +51,7 @@ export type SceneActions = {
   focusObject: (_item: SceneObject) => void
   clearScene: () => void
   addObjectSilent: (_name: string, _obj: Object3D, _source: SceneObjectSource) => SceneObject
+  setObjectRenderMode: (_item: SceneObject, _mode: 'splat' | 'pointcloud') => void
   addProjection: (
     _name: string,
     _projection: VantageProjection,

@@ -2,9 +2,11 @@ import type { SceneObject, SceneObjectSource, ProjectionItem } from '../types.ts
 import type { SceneManifest, SceneObjectEntry, ProjectionEntry } from './types.ts'
 import { loadGLTF } from '../gltfLoader.ts'
 import { loadSplat } from '../splatLoader.ts'
-import { loadPointCloud } from '../pointCloudLoader.ts'
+import { loadPointCloud, splatToPoints } from '../pointCloudLoader.ts'
+import { POINT_CLOUD_DEFAULTS } from '../constants.ts'
 import { VantageProjection, loadTexture } from '../scene/projection'
 import * as THREE from 'three'
+import type { PointCloudDisplay } from '../types.ts'
 
 export function serializeScene(
   objects: SceneObject[],
@@ -28,7 +30,7 @@ export function serializeScene(
       else if (item.source.format === 'pointcloud') type = 'pointcloud'
     }
 
-    return {
+    const entry: SceneObjectEntry = {
       id: item.id,
       name: item.name,
       type,
@@ -40,6 +42,16 @@ export function serializeScene(
       },
       visible: item.visible,
     }
+
+    if (item.display) {
+      entry.metadata = {
+        renderAs: item.display.renderAs,
+        pointSize: item.display.pointSize,
+        sizeAttenuation: item.display.sizeAttenuation,
+      }
+    }
+
+    return entry
   })
 
   const manifest: SceneManifest = {
@@ -79,6 +91,22 @@ export function serializeScene(
   return manifest
 }
 
+/** Parse persisted display settings from an object entry's `metadata`. */
+function readDisplay(
+  metadata: Record<string, unknown> | undefined,
+  defaultRenderAs: 'splat' | 'pointcloud'
+): PointCloudDisplay {
+  const m = metadata ?? {}
+  return {
+    renderAs: m.renderAs === 'splat' || m.renderAs === 'pointcloud' ? m.renderAs : defaultRenderAs,
+    pointSize: typeof m.pointSize === 'number' ? m.pointSize : POINT_CLOUD_DEFAULTS.pointSize,
+    sizeAttenuation:
+      typeof m.sizeAttenuation === 'boolean'
+        ? m.sizeAttenuation
+        : POINT_CLOUD_DEFAULTS.sizeAttenuation,
+  }
+}
+
 export async function deserializeScene(
   manifest: SceneManifest,
   readFile: (path: string) => Promise<File>
@@ -112,11 +140,17 @@ export async function deserializeScene(
     } else if (entry.type === 'splat') {
       const file = await readFile(entry.source.path)
       const { object: splat } = await loadSplat(file)
-      object = splat
+      const display = readDisplay(entry.metadata, 'splat')
+      splat.userData.display = display
+      object =
+        display.renderAs === 'pointcloud'
+          ? splatToPoints(splat as Parameters<typeof splatToPoints>[0], display)
+          : splat
       source = { kind: 'imported', relativePath: entry.source.path, format: 'splat' }
     } else if (entry.type === 'pointcloud') {
       const file = await readFile(entry.source.path)
-      const { object: cloud } = await loadPointCloud(file)
+      const display = readDisplay(entry.metadata, 'pointcloud')
+      const { object: cloud } = await loadPointCloud(file, display)
       object = cloud
       source = { kind: 'imported', relativePath: entry.source.path, format: 'pointcloud' }
     } else {

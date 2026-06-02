@@ -1,4 +1,5 @@
 import type { Object3D } from 'three'
+import { POINT_CLOUD_DEFAULTS } from '@/lib/constants.ts'
 
 const SPARK_MISSING_MESSAGE =
   'Gaussian splat support requires the optional "@sparkjsdev/spark" package. ' +
@@ -55,6 +56,8 @@ export async function loadSplat(file: File): Promise<{ object: Object3D; blob: B
     throw new Error(`Could not load "${file.name}" as a Gaussian splat.`, { cause })
   }
   mesh.userData.isSplat = true
+  // Default display settings, used if the splat is toggled to point-cloud rendering.
+  mesh.userData.display = { renderAs: 'splat', ...POINT_CLOUD_DEFAULTS }
 
   return { object: mesh, blob: file }
 }

@@ -22,3 +22,9 @@ export const FILE_PATTERNS = {
 
 // ── Project directories ──
 export const PROJECT_DIRS = ['models', 'projections'] as const
+
+// ── Point cloud display defaults ──
+export const POINT_CLOUD_DEFAULTS = {
+  pointSize: 3,
+  sizeAttenuation: false,
+} as const

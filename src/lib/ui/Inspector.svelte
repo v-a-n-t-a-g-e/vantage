@@ -4,13 +4,20 @@
   import { pushCommand } from '@/lib/history.svelte.ts'
   import Vec3Controls from '@/lib/ui/Vec3Controls.svelte'
   import UniformScaleControl from '@/lib/ui/UniformScaleControl.svelte'
+  import PointCloudControls from '@/lib/ui/PointCloudControls.svelte'
   import DragInput from '@/lib/ui/DragInput.svelte'
   import DeleteIcon from '@/assets/icons/Delete.svg'
 
   const sel = $derived(sceneState.selected)
 
-  // Splats (SplatMesh) only honor uniform scale
-  const isSplat = $derived(
+  // A live SplatMesh only honors uniform scale; once rendered as points it's a
+  // regular THREE.Points and supports per-axis scale.
+  const isSplatMesh = $derived(sel?.kind === 'object' && sel.object.userData?.isSplat === true)
+  // Whether the selected object is currently a point cloud (native, or a splat
+  // toggled to point-cloud rendering).
+  const isPointCloud = $derived(sel?.kind === 'object' && sel.object.userData?.isPointCloud === true)
+  // Splat-sourced objects can be toggled between splat and point-cloud rendering.
+  const isSplatSource = $derived(
     sel?.kind === 'object' && sel.source.kind === 'imported' && sel.source.format === 'splat'
   )
 
@@ -94,7 +101,7 @@
     />
 
     {#if sel.kind === 'object'}
-      {#if isSplat}
+      {#if isSplatMesh}
         <UniformScaleControl object={sel.object} step={0.01} />
       {:else}
         <Vec3Controls
@@ -104,6 +111,25 @@
           step={0.01}
           title="Scale"
         />
+      {/if}
+
+      {#if isSplatSource}
+        <label class="ui-button w-full gap-3">
+          <input
+            checked={isPointCloud}
+            onchange={(e) =>
+              sceneActions.value?.setObjectRenderMode(
+                sel,
+                (e.target as HTMLInputElement).checked ? 'pointcloud' : 'splat'
+              )}
+            type="checkbox"
+          />
+          Render as point cloud
+        </label>
+      {/if}
+
+      {#if isPointCloud}
+        <PointCloudControls item={sel} />
       {/if}
     {/if}
 
