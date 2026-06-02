@@ -5,13 +5,11 @@ import { loadPointCloud } from '@/lib/pointCloudLoader.ts'
 import { detectPlyKind } from '@/lib/plyFormat.ts'
 import { VantageProjection, loadTexture } from '@/lib/scene/projection'
 import { FILE_PATTERNS } from '@/lib/constants.ts'
-import { notify } from '@/lib/notifications.svelte.ts'
 
 export type ImportErrorHandler = (file: File, error: Error) => void
 
 const defaultOnError: ImportErrorHandler = (file, error) => {
   console.error(`Failed to import ${file.name}:`, error)
-  notify(error.message || `Failed to import ${file.name}`, 'error')
 }
 
 export async function importModelFiles(
