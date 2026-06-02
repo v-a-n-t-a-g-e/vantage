@@ -34,7 +34,7 @@ export interface ProjectHandle {
  * otherwise falls back to `<input webkitdirectory>` (read-only, saves export as ZIP).
  * Returns `null` if the user cancels the picker.
  */
-export async function openProject(create: Boolean): Promise<ProjectHandle | null> {
+export async function openProject(create?: Boolean): Promise<ProjectHandle | null> {
   if (supportsNativeFS()) {
     let handle: FileSystemDirectoryHandle
     try {
