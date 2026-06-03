@@ -177,6 +177,7 @@ async function loadFromFS(readFile: (path: string) => Promise<File>) {
       if (item) {
         item.id = p.id
         item.visible = p.visible
+        item.coupledObjectId = p.coupledObjectId
       }
     }
   }

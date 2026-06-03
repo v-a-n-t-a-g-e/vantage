@@ -174,6 +174,33 @@
         />
         Projection Plane
       </label>
+      <label class="ui-button w-full justify-between gap-3">
+        Coupled model
+        <select
+          class="min-w-0 flex-1 cursor-pointer truncate border border-black bg-white px-1 py-0.5 text-right"
+          onchange={(e) => {
+            const p = sel as ProjectionItem
+            const before = p.coupledObjectId
+            const after = (e.target as HTMLSelectElement).value || undefined
+            if (before === after) return
+            p.coupledObjectId = after
+            pushCommand({
+              undo: () => {
+                p.coupledObjectId = before
+              },
+              redo: () => {
+                p.coupledObjectId = after
+              },
+            })
+          }}
+          value={(sel as ProjectionItem).coupledObjectId ?? ''}
+        >
+          <option value="">None</option>
+          {#each sceneState.objects as obj (obj.id)}
+            <option value={obj.id}>{obj.name}</option>
+          {/each}
+        </select>
+      </label>
     {/if}
 
     <button

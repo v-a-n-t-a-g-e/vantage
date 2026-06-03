@@ -43,6 +43,9 @@ export type ProjectionItem = {
   locked: boolean
   imageBlob?: Blob
   imagePath: string
+  /** When set, the model with this id is tightly coupled to this projection:
+   *  transforms applied to either move both as one rigid body. */
+  coupledObjectId?: string
 }
 
 export type SceneActions = {

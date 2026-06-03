@@ -84,6 +84,7 @@ export function serializeScene(
         near: p.near,
         far: p.far,
         visible: item.visible,
+        coupledObjectId: item.coupledObjectId,
       }
     })
   }
@@ -188,6 +189,7 @@ export async function deserializeProjections(
     projection: VantageProjection
     visible: boolean
     imagePath: string
+    coupledObjectId?: string
   }[]
 > {
   const results: {
@@ -196,6 +198,7 @@ export async function deserializeProjections(
     projection: VantageProjection
     visible: boolean
     imagePath: string
+    coupledObjectId?: string
   }[] = []
 
   for (const entry of entries) {
@@ -218,6 +221,7 @@ export async function deserializeProjections(
         projection,
         visible: entry.visible,
         imagePath: entry.imagePath,
+        coupledObjectId: entry.coupledObjectId,
       })
     } finally {
       URL.revokeObjectURL(url)

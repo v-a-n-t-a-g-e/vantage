@@ -39,4 +39,6 @@ export interface ProjectionEntry {
   near: number
   far: number
   visible: boolean
+  /** Id of a tightly-coupled model (see ProjectionItem.coupledObjectId). */
+  coupledObjectId?: string
 }

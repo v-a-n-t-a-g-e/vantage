@@ -7,6 +7,7 @@ import { TransformGizmo } from '@/lib/scene/TransformGizmo.ts'
 import { AimModeController } from '@/lib/scene/AimModeController.ts'
 import { PickingController } from '@/lib/scene/PickingController.ts'
 import { SelectionManager } from '@/lib/scene/SelectionManager.ts'
+import { CouplingManager } from '@/lib/scene/CouplingManager.ts'
 import { UI_LAYER } from '@/lib/scene/layers.ts'
 import { VantageProjection } from '@/lib/scene/projection'
 import { importFiles } from '@/lib/fileImport.ts'
@@ -15,6 +16,7 @@ import { splatToPoints } from '@/lib/pointCloudLoader.ts'
 export class SceneEditor extends SceneViewer {
   private gizmo: TransformGizmo
   private selectionManager: SelectionManager
+  private couplingManager: CouplingManager
   private lastTool: Tool = 'cursor'
   private canvas: HTMLCanvasElement
   private aimController: AimModeController
@@ -33,6 +35,7 @@ export class SceneEditor extends SceneViewer {
     this.scene.add(gizmoHelper)
 
     this.selectionManager = new SelectionManager(this.scene, this.gizmo)
+    this.couplingManager = new CouplingManager()
 
     this.aimController = new AimModeController({
       camera: this.camera,
@@ -55,13 +58,32 @@ export class SceneEditor extends SceneViewer {
       removeObject: (item) => {
         const wasSelected =
           sceneState.selected?.kind === 'object' && sceneState.selected.object === item.object
+        // Capture any projections tightly coupled to this model so the link can
+        // be restored on undo (doAdd assigns a fresh id, so we re-point to it).
+        const coupledProjections = sceneState.projections.filter(
+          (p) => p.coupledObjectId === item.id
+        )
         this.doRemove(item)
+        for (const p of coupledProjections) {
+          p.coupledObjectId = undefined
+          this.couplingManager.reset(p.id)
+        }
         pushCommand({
           undo: () => {
-            this.doAdd(item.name, item.object, item.source)
+            const restored = this.doAdd(item.name, item.object, item.source)
+            for (const p of coupledProjections) {
+              p.coupledObjectId = restored.id
+              this.couplingManager.reset(p.id)
+            }
             if (wasSelected) sceneState.selected = sceneState.objects[sceneState.objects.length - 1]
           },
-          redo: () => this.doRemove(item),
+          redo: () => {
+            this.doRemove(item)
+            for (const p of coupledProjections) {
+              p.coupledObjectId = undefined
+              this.couplingManager.reset(p.id)
+            }
+          },
         })
       },
       focusObject: (item) => {
@@ -167,6 +189,7 @@ export class SceneEditor extends SceneViewer {
   }
 
   protected override onTick(): void {
+    this.couplingManager.update()
     this.selectionManager.update()
   }
 
@@ -190,6 +213,7 @@ export class SceneEditor extends SceneViewer {
     this.pickingController.dispose()
     this.gizmo.dispose()
     this.selectionManager.dispose()
+    this.couplingManager.dispose()
     for (const p of sceneState.projections) {
       p.projection.dispose()
     }
