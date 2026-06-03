@@ -39,10 +39,10 @@ export class PickingController {
       this.camera
     )
 
-    // Collect unlocked scene object targets
+    // Collect unlocked, visible scene object targets
     const objTargets: THREE.Object3D[] = []
     for (const item of sceneState.objects) {
-      if (!item.locked) item.object.traverse((child) => objTargets.push(child))
+      if (!item.locked && item.visible) item.object.traverse((child) => objTargets.push(child))
     }
 
     // Collect unlocked, visible projection plane targets
