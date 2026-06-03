@@ -68,7 +68,7 @@
   <div class="px-3 py-1.5">Point Cloud</div>
   <div class="flex divide-x">
     <div class="flex-1 px-3 py-1.5">
-      <DragInput label="size" {onchange} {onend} {onstart} step={0.5} value={size} />
+      <DragInput label="size" {onchange} {onend} {onstart} step={0.1} value={size} />
     </div>
   </div>
 </div>
